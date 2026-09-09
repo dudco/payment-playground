@@ -1,4 +1,4 @@
-# Order Reliability Lab
+# Payment Playground
 
 주문 생성과 Fake PG의 정상 결제 흐름에서 시작해, 실제로 재현한 문제를 하나씩 해결하는 Spring Boot 실험 프로젝트입니다.
 

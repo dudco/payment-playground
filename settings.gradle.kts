@@ -1,1 +1,1 @@
-rootProject.name = "order-reliability-lab"
+rootProject.name = "payment-playground"

@@ -1,11 +1,11 @@
-package io.github.dudco.orderreliabilitylab
+package io.github.dudco.paymentplayground
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class OrderReliabilityLabApplication
+class PaymentPlaygroundApplication
 
 fun main(args: Array<String>) {
-	runApplication<OrderReliabilityLabApplication>(*args)
+	runApplication<PaymentPlaygroundApplication>(*args)
 }

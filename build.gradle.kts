@@ -8,7 +8,7 @@ plugins {
 
 group = "io.github.dudco"
 version = "0.0.1-SNAPSHOT"
-description = "Order creation and Fake PG MVP"
+description = "Payment Playground: order creation and Fake PG MVP"
 
 java {
 	toolchain {

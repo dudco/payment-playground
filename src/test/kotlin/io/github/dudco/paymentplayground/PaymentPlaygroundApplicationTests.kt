@@ -1,13 +1,12 @@
-package io.github.dudco.orderreliabilitylab
+package io.github.dudco.paymentplayground
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 
 @SpringBootTest
-class OrderReliabilityLabApplicationTests {
+class PaymentPlaygroundApplicationTests {
 
 	@Test
 	fun contextLoads() {
 	}
-
 }
