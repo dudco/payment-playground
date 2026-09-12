@@ -2,9 +2,9 @@
 
 ## 1. 목적
 
-이 문서는 `payment-playground`의 첫 주문·결제 API 범위를 정의한다. REST API와 자동 테스트만 제공하며, 실제 PG/VAN 네트워크 통신이나 UI는 범위에 포함하지 않는다.
+이 문서는 `payment-playground`의 첫 장바구니·주문·결제 API 범위를 정의한다. REST API와 자동 테스트만 제공하며, 실제 PG/VAN 네트워크 통신이나 UI는 범위에 포함하지 않는다.
 
-주문은 여러 상품 라인을 포함할 수 있고, 다음 세 결제 흐름을 지원한다.
+고객은 여러 상품을 장바구니에 담고 장바구니를 조회한 뒤 주문을 생성할 수 있다. 주문은 여러 주문 라인을 포함하며, 다음 세 결제 흐름을 지원한다.
 
 1. 온라인 카드: 앱이 PG 토큰을 받은 뒤 서버에 전달하고 승인한다.
 2. 오프라인 카드: POS/키오스크가 이미 수행한 VAN 승인 결과를 서버에 전송하고 주문에 반영한다.
@@ -20,6 +20,7 @@
 | --- | --- | --- |
 | 상품 | `Product` | 고객에게 판매하는 카탈로그 단위. 판매명·판매가의 기준이다. |
 | 품목 | `Item` | 매입·재고 관리 단위. 하나의 `Product`에 서로 다른 매입가 또는 매입 거래처를 가진 여러 `Item`이 연결될 수 있다. |
+| 장바구니 라인 | `CartLine` | 결제 전 장바구니에서 고객이 선택한 `Product`와 수량을 기록한 가변 데이터다. |
 | 주문 라인 | `OrderLine` | 한 주문에서 고객이 선택한 `Product`와 수량·주문 시점 판매가를 기록한 불변 스냅샷이다. |
 
 이 MVP는 `Product`와 `Item`의 영속 모델을 구현하지 않는다. 다만 주문 모델은 처음부터 `OrderLine`을 사용하며, `OrderItem`이라는 이름은 사용하지 않는다. 이후 재고 할당이 필요해질 때 `Product 1 : N Item` 관계와 `OrderLine`의 품목 할당 정보를 별도 기능으로 추가한다.
@@ -28,7 +29,8 @@
 
 ### 목표
 
-- 한 주문에 하나 이상의 주문 라인(`OrderLine`)을 생성한다.
+- 하나 이상의 장바구니 라인(`CartLine`)을 가진 장바구니를 생성하고 조회한다.
+- 장바구니에서 한 주문에 하나 이상의 주문 라인(`OrderLine`)을 생성한다.
 - 주문 라인의 합계와 요청 주문 총액을 서버에서 검증한다.
 - 세 결제수단별 요청 데이터를 타입 안전하게 분리한다.
 - 승인 결과를 결제 및 주문 상태에 원자적으로 반영한다.
@@ -42,23 +44,31 @@
 - 웹뷰/UI, 정산, 환불, 부분 취소, 분할 결제
 - idempotency, 중복 웹훅 제거, outbox, 재시도, DLQ
 - 포인트 잔액의 영구 원장 및 회원 시스템 연동
+- 장바구니 라인 수정·삭제, 쿠폰·할인, 장바구니 만료·병합
 
 ## 3. 사용자 흐름
 
-### 3.1 주문 생성
+### 3.1 장바구니 생성과 조회
 
-1. 클라이언트가 고객 식별자와 한 개 이상의 주문 라인을 보낸다.
-2. 서버는 `quantity × unitPrice`의 합이 `totalAmount`와 같은지 검증한다.
-3. 서버는 `Order(CREATED)`와 `OrderLine`들을 생성하고 주문 식별자 및 금액을 반환한다.
+1. 클라이언트가 고객 식별자와 한 개 이상의 장바구니 라인을 보낸다.
+2. 서버는 `Cart(ACTIVE)`와 `CartLine`들을 생성하고 장바구니 식별자를 반환한다.
+3. 클라이언트는 장바구니 식별자로 현재 장바구니와 장바구니 라인을 조회한다.
 
-### 3.2 온라인 카드
+### 3.2 장바구니에서 주문 생성
+
+1. 클라이언트가 활성 장바구니의 주문 생성을 요청한다.
+2. 서버는 장바구니 라인을 읽고 `quantity × unitPrice`의 합으로 주문 총액을 계산한다.
+3. 서버는 `Order(CREATED)`와 불변 `OrderLine` 스냅샷들을 생성하고 장바구니를 `CHECKED_OUT`으로 전이한다.
+4. 장바구니 하나는 한 번만 주문으로 전환할 수 있다.
+
+### 3.3 온라인 카드
 
 1. 클라이언트가 주문에 대한 온라인 카드 결제를 생성한다.
 2. 앱의 웹뷰/PG가 발급한 `paymentToken`을 서버에 전달한다.
 3. `FakeOnlineCardPaymentGateway`가 토큰 기반 승인을 수행한다.
 4. 성공하면 `Payment`는 `APPROVED`, 주문은 `PAID`가 된다.
 
-### 3.3 오프라인 카드
+### 3.4 오프라인 카드
 
 1. POS/키오스크는 VAN 승인 완료 뒤 결과를 서버에 전송한다.
 2. 클라이언트는 승인번호, VAN 거래 고유번호, 응답코드, 승인시각, 금액·부가세, 카드사 코드를 보낸다.
@@ -67,13 +77,18 @@
 
 오프라인 Gateway는 VAN 통신을 새로 실행하지 않는다. 단말이 이미 받은 승인 결과를 안전한 형태로 접수하는 책임만 가진다.
 
-### 3.4 자체 포인트
+### 3.5 자체 포인트
 
 1. 오프라인은 `barcode`, 온라인은 `pointPaymentMethodId`로 결제를 요청한다.
 2. `FakePointPaymentGateway`가 참조값과 결제금액을 검증하고 차감 결과를 만든다.
 3. 성공하면 `Payment`는 `APPROVED`, 주문은 `PAID`가 된다.
 
 ## 4. 도메인 및 상태 전이
+
+### 장바구니 상태
+
+- `ACTIVE`: 생성되어 조회·주문 전환 가능한 상태
+- `CHECKED_OUT`: 주문으로 전환된 상태. 재주문 전환 불가
 
 ### 주문 상태
 
@@ -92,11 +107,13 @@
 ### 전이 규칙
 
 ```text
+Cart:    ACTIVE -> CHECKED_OUT
 Order:   CREATED -> PAYMENT_PENDING -> PAID -> CANCELLED
 Payment: PENDING -> APPROVED -> CANCELLED
                  -> FAILED
 ```
 
+- `CHECKED_OUT` 장바구니는 다시 주문으로 전환할 수 없다.
 - `PAID` 주문에는 새 결제를 생성할 수 없다.
 - 결제 승인 금액은 주문 총액과 같아야 한다.
 - 취소는 `APPROVED` 결제만 가능하고, 이 MVP에서는 전액 취소만 허용한다.
@@ -130,18 +147,17 @@ interface PointPaymentGateway {
 
 ## 6. REST API 계약
 
-### 주문 생성
+### 장바구니 생성
 
-`POST /orders`
+`POST /carts`
 
 ```json
 {
   "customerId": "customer-001",
-  "orderLines": [
+  "cartLines": [
     { "productId": "americano", "productName": "아메리카노", "quantity": 2, "unitPrice": 4500 },
     { "productId": "cake", "productName": "케이크", "quantity": 1, "unitPrice": 6000 }
   ],
-  "totalAmount": 15000
 }
 ```
 
@@ -149,7 +165,44 @@ interface PointPaymentGateway {
 
 ```json
 {
+  "cartId": "uuid",
+  "status": "ACTIVE",
+  "cartLines": [
+    { "productId": "americano", "quantity": 2, "unitPrice": 4500 },
+    { "productId": "cake", "quantity": 1, "unitPrice": 6000 }
+  ]
+}
+```
+
+### 장바구니 조회
+
+`GET /carts/{cartId}`
+
+응답: `200 OK`
+
+```json
+{
+  "cartId": "uuid",
+  "customerId": "customer-001",
+  "status": "ACTIVE",
+  "totalAmount": 15000,
+  "cartLines": [
+    { "productId": "americano", "productName": "아메리카노", "quantity": 2, "unitPrice": 4500, "lineAmount": 9000 },
+    { "productId": "cake", "productName": "케이크", "quantity": 1, "unitPrice": 6000, "lineAmount": 6000 }
+  ]
+}
+```
+
+### 주문 생성
+
+`POST /carts/{cartId}/orders`
+
+응답: `201 Created`
+
+```json
+{
   "orderId": "uuid",
+  "cartId": "uuid",
   "status": "CREATED",
   "totalAmount": 15000,
   "orderLines": [
@@ -250,7 +303,7 @@ interface PointPaymentGateway {
 
 - `400 Bad Request`: 필수값 누락, 잘못된 형식, 0 이하 수량/금액
 - `404 Not Found`: 존재하지 않는 주문 또는 결제
-- `409 Conflict`: 현재 상태에서 허용되지 않는 결제/취소
+- `409 Conflict`: 이미 주문으로 전환된 장바구니 또는 현재 상태에서 허용되지 않는 결제/취소
 - `422 Unprocessable Entity`: Gateway 승인 거절 또는 금액 불일치
 
 ## 7. 보안 및 개인정보 정책
@@ -272,7 +325,8 @@ interface PointPaymentGateway {
 
 ## 8. 수용 조건
 
-- 복수 상품 주문의 정상 생성 및 합계 불일치 거절을 자동 테스트한다.
+- 장바구니 생성·조회 및 존재하지 않는 장바구니 조회 거절을 자동 테스트한다.
+- 장바구니의 복수 상품이 불변 주문 라인으로 전환되고, 중복 주문 전환이 거절되는지 자동 테스트한다.
 - 온라인 카드, 오프라인 카드, 포인트 결제가 각각 올바른 Fake Gateway를 통해 승인된다.
 - 각 승인 성공 시 결제는 `APPROVED`, 주문은 `PAID`가 된다.
 - VAN의 성공 응답코드가 아니거나 승인금액이 주문과 다르면 오프라인 결제가 거절된다.

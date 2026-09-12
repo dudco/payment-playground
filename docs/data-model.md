@@ -9,6 +9,8 @@
 ## 2. 엔티티 관계
 
 ```text
+Cart 1 --- N CartLine
+Cart 1 --- 0..1 Order
 Order 1 --- N OrderLine
 Order 1 --- N Payment
 Payment 1 --- 0..1 PaymentCancellation
@@ -20,11 +22,37 @@ Future: Product 1 --- N Item
 
 이 MVP는 주문 전체 금액을 한 번에 결제하므로, 승인 가능한 `Payment`는 주문당 한 건이다. 결제 실패 기록은 남길 수 있다.
 
-## 3. Order
+## 3. Cart
+
+| 필드 | 설명 | 제약 |
+| --- | --- | --- |
+| `id` | 장바구니 식별자(UUID) | PK |
+| `customerId` | 고객 참조 식별자 | 필수 |
+| `status` | `ACTIVE`, `CHECKED_OUT` | 필수 |
+| `createdAt` | 장바구니 생성 시각 | 필수 |
+| `updatedAt` | 마지막 상태 변경 시각 | 필수 |
+
+이 MVP에서 장바구니는 생성 시 전달한 라인으로만 구성된다. 라인 수정·삭제, 만료, 고객당 활성 장바구니 단일화는 범위 밖이다.
+
+## 4. CartLine
+
+| 필드 | 설명 | 제약 |
+| --- | --- | --- |
+| `id` | 장바구니 라인 식별자(UUID) | PK |
+| `cartId` | 소속 장바구니 식별자 | FK, 필수 |
+| `productId` | 상품 참조 식별자 | 필수 |
+| `productName` | 장바구니 시점 상품명 | 필수 |
+| `quantity` | 수량 | 0보다 큼 |
+| `unitPrice` | 장바구니 시점 단가 | 0 이상 |
+
+주문 생성 시 `CartLine`은 `OrderLine`으로 복사된다. 결제 대상 금액은 복사된 `OrderLine`의 금액으로 계산하며, 주문 전환 뒤 장바구니를 다시 사용하지 않는다.
+
+## 5. Order
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
 | `id` | 주문 식별자(UUID) | PK |
+| `cartId` | 원본 장바구니 식별자 | FK, unique, 필수 |
 | `customerId` | 고객 참조 식별자 | 필수 |
 | `status` | `CREATED`, `PAYMENT_PENDING`, `PAID`, `CANCELLED` | 필수 |
 | `totalAmount` | 주문 총액 | 0보다 큼 |
@@ -33,7 +61,7 @@ Future: Product 1 --- N Item
 
 정합성 규칙: `totalAmount = Σ(OrderLine.quantity × OrderLine.unitPrice)`.
 
-## 4. OrderLine
+## 6. OrderLine
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -47,7 +75,7 @@ Future: Product 1 --- N Item
 
 `productName`, `unitPrice`는 주문 당시 값을 보존한다. `itemId`는 이 MVP에 추가하지 않는다. 하나의 상품을 어떤 품목에서 출고·매입했는지는 재고/조달 기능과 함께 별도 할당 모델로 추가한다.
 
-## 5. 향후 Product와 Item 모델
+## 7. 향후 Product와 Item 모델
 
 향후 카탈로그와 재고/매입 기능을 추가할 때 다음 책임으로 분리한다.
 
@@ -59,7 +87,7 @@ Future: Product 1 --- N Item
 
 따라서 `Item`은 주문 라인을 의미하지 않으며, `OrderItem`이라는 클래스·테이블·API 이름을 만들지 않는다.
 
-## 6. Payment
+## 8. Payment
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -79,7 +107,7 @@ Future: Product 1 --- N Item
 
 `providerTransactionId`는 승인/취소 시 외부 거래를 연결하는 최소 식별자다. 포인트 결제는 Fake Gateway가 생성한 거래 식별자를 사용한다.
 
-## 7. PaymentCancellation
+## 9. PaymentCancellation
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -94,9 +122,9 @@ Future: Product 1 --- N Item
 
 MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.status = CANCELLED`와 취소 레코드 생성은 같은 트랜잭션에서 처리한다.
 
-## 8. 결제수단별 데이터 매핑
+## 10. 결제수단별 데이터 매핑
 
-### 8.1 온라인 카드
+### 10.1 온라인 카드
 
 | 요청/결과 | 저장 위치 | 보존 정책 |
 | --- | --- | --- |
@@ -105,7 +133,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 | 승인번호 | `approvalNumber` | PG가 제공할 때 저장 |
 | 승인 시각/금액 | `approvedAt`, `amount` | 저장 |
 
-### 8.2 오프라인 카드 / VAN
+### 10.2 오프라인 카드 / VAN
 
 제공된 VAN 응답 모델에서 다음 값만 승인 저장 대상으로 삼는다.
 
@@ -124,7 +152,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 
 `VANApproveResponse`는 현장 단말/연동 계층의 파싱 참조로만 사용한다. API·도메인 계층에는 이를 직접 노출하지 않고 `OfflineCardApprovalCommand`로 필요한 값만 변환한다.
 
-### 8.3 자체 포인트
+### 10.3 자체 포인트
 
 | 요청/결과 | 저장 위치 | 보존 정책 |
 | --- | --- | --- |
@@ -134,7 +162,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 | 차감 금액·승인 시각 | `amount`, `approvedAt` | 저장 |
 | 채널(`ONLINE`/`OFFLINE`) | `metadata.channel` | 저장 가능 |
 
-## 9. metadata 정책
+## 11. metadata 정책
 
 `metadata`는 JSON 문자열로 저장하며, 검색·정합성의 핵심이 아닌 비민감 부가 정보만 담는다. 예시는 다음과 같다.
 
@@ -156,9 +184,10 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 - 카드번호, Track2, PIN, 주민번호 및 카드 인증 원문
 - 온라인 PG 토큰 또는 포인트 바코드 원문
 
-## 10. 인덱스와 무결성
+## 12. 인덱스와 무결성
 
-- `OrderLine.orderId`, `Payment.orderId`, `PaymentCancellation.paymentId`에 인덱스를 둔다.
+- `CartLine.cartId`, `Order.cartId`, `OrderLine.orderId`, `Payment.orderId`, `PaymentCancellation.paymentId`에 인덱스를 둔다.
+- `Order.cartId`에는 하나의 장바구니가 한 번만 주문으로 전환되도록 unique 제약을 둔다.
 - `Payment.providerTransactionId`는 결제수단 범위에서 유일해야 한다.
 - `PaymentCancellation.paymentId`는 하나의 승인 결제에 취소가 한 번만 연결되도록 unique 제약을 둔다.
 - 금액과 수량은 애플리케이션 검증과 DB 제약을 함께 적용한다.

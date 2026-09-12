@@ -26,9 +26,11 @@
 
 Redis가 기본 주소(`localhost:6379`)에서 실행 중이어야 합니다. 다른 주소는 `REDIS_HOST`, `REDIS_PORT` 환경 변수로 지정합니다.
 
-## 설계 초안
+## 현재 설계
 
-[MVP API와 상태 전이](docs/mvp-draft.md)를 먼저 확인합니다.
+[PRD](docs/prd.md), [데이터 모델](docs/data-model.md), [ADR](docs/adr/)를 먼저 확인합니다.
+
+`docs/mvp-draft.md`는 초기 단일 주문 결제 흐름을 남긴 역사 문서이며, 현재 구현 기준은 아닙니다.
 
 ## 기능 확장 원칙
 
