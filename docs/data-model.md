@@ -2,14 +2,13 @@
 
 ## 1. 목적
 
-이 문서는 주문·결제 API의 영속 모델과 데이터 보존 기준을 정의한다. SQLite/JPA 구현을 전제로 하되, 특정 ORM 어노테이션이나 컬럼 타입은 구현 계획에서 확정한다.
+이 문서는 장바구니 초안·주문·결제 API의 영속 모델과 데이터 보존 기준을 정의한다. SQLite/JPA 구현을 전제로 하되, 특정 ORM 어노테이션이나 컬럼 타입은 구현 계획에서 확정한다.
 
-금액은 통화의 최소 단위(원)인 정수로 저장한다. 이 MVP의 `amount`는 모두 KRW이며, 통화 변환은 지원하지 않는다.
+금액은 KRW 최소 단위인 정수로 저장한다. 통화 변환은 지원하지 않는다.
 
 ## 2. 엔티티 관계
 
 ```text
-Cart 1 --- N CartLine
 Cart 1 --- 0..1 Order
 Order 1 --- N OrderLine
 Order 1 --- N Payment
@@ -18,41 +17,47 @@ Payment 1 --- 0..1 PaymentCancellation
 Future: Product 1 --- N Item
 ```
 
-`Product`는 고객에게 판매하는 상품 카탈로그 단위이고, `Item`은 매입가·매입 거래처·재고를 관리하는 품목 단위다. 하나의 `Product`에 여러 `Item`이 연결될 수 있다. 주문은 `Item`이 아니라 판매 시점의 `Product`를 참조하는 `OrderLine`을 가진다.
+`Cart`는 별도 `CartLine` 테이블을 가지지 않는다. `Cart.orderLinesJson`에 주문 초안 라인을 JSON 스냅샷으로 보관하고, 주문 생성 시에만 `OrderLine` 행으로 복사한다.
 
-이 MVP는 주문 전체 금액을 한 번에 결제하므로, 승인 가능한 `Payment`는 주문당 한 건이다. 결제 실패 기록은 남길 수 있다.
+`Product`는 고객에게 판매하는 상품 카탈로그 단위이고, `Item`은 매입가·매입 거래처·재고를 관리하는 품목 단위다. 하나의 `Product`에 여러 `Item`이 연결될 수 있다. 주문은 `Item`이 아니라 판매 시점의 `Product`를 참조하는 `OrderLine`을 가진다.
 
 ## 3. Cart
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
-| `id` | 장바구니 식별자(UUID) | PK |
+| `id` | 내부 Cart 식별자(UUID) | PK |
+| `idempotencyKey` | Cart 생성·조회·주문 전환에 쓰는 키 | unique, 필수 |
 | `customerId` | 고객 참조 식별자 | 필수 |
-| `status` | `ACTIVE`, `CHECKED_OUT` | 필수 |
-| `createdAt` | 장바구니 생성 시각 | 필수 |
-| `updatedAt` | 마지막 상태 변경 시각 | 필수 |
+| `status` | `ACTIVE`, `ORDER_CREATED` | 필수 |
+| `orderLinesJson` | 상품·수량·판매가의 주문 초안 스냅샷 | 필수, 비어 있지 않음 |
+| `totalAmount` | `orderLinesJson`에서 계산한 합계 | 0보다 큼 |
+| `orderId` | 전환 후 생성된 주문 식별자 | unique, nullable |
+| `createdAt` | Cart 생성 시각 | 필수 |
+| `updatedAt` | 마지막 갱신/상태 변경 시각 | 필수 |
 
-이 MVP에서 장바구니는 생성 시 전달한 라인으로만 구성된다. 라인 수정·삭제, 만료, 고객당 활성 장바구니 단일화는 범위 밖이다.
+`ACTIVE` Cart는 동일 `idempotencyKey`의 `POST /cart`로 주문 초안을 교체할 수 있다. `ORDER_CREATED` Cart는 갱신할 수 없다.
 
-## 4. CartLine
+`orderLinesJson`은 다음 비민감 필드만 허용한다.
 
-| 필드 | 설명 | 제약 |
-| --- | --- | --- |
-| `id` | 장바구니 라인 식별자(UUID) | PK |
-| `cartId` | 소속 장바구니 식별자 | FK, 필수 |
-| `productId` | 상품 참조 식별자 | 필수 |
-| `productName` | 장바구니 시점 상품명 | 필수 |
-| `quantity` | 수량 | 0보다 큼 |
-| `unitPrice` | 장바구니 시점 단가 | 0 이상 |
+```json
+[
+  {
+    "productId": "americano",
+    "productName": "아메리카노",
+    "quantity": 2,
+    "unitPrice": 4500
+  }
+]
+```
 
-주문 생성 시 `CartLine`은 `OrderLine`으로 복사된다. 결제 대상 금액은 복사된 `OrderLine`의 금액으로 계산하며, 주문 전환 뒤 장바구니를 다시 사용하지 않는다.
+원 주문 요청 전체, 카드 정보, PG 토큰, 포인트 바코드, VAN 원문은 이 JSON에 저장하지 않는다.
 
-## 5. Order
+## 4. Order
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
 | `id` | 주문 식별자(UUID) | PK |
-| `cartId` | 원본 장바구니 식별자 | FK, unique, 필수 |
+| `cartId` | 원본 Cart 내부 식별자 | FK, unique, 필수 |
 | `customerId` | 고객 참조 식별자 | 필수 |
 | `status` | `CREATED`, `PAYMENT_PENDING`, `PAID`, `CANCELLED` | 필수 |
 | `totalAmount` | 주문 총액 | 0보다 큼 |
@@ -61,7 +66,9 @@ Future: Product 1 --- N Item
 
 정합성 규칙: `totalAmount = Σ(OrderLine.quantity × OrderLine.unitPrice)`.
 
-## 6. OrderLine
+`POST /order`는 Cart·Order·OrderLine 생성과 `Cart.status = ORDER_CREATED`, `Cart.orderId` 설정을 하나의 트랜잭션에서 수행한다. `Order.cartId`의 unique 제약으로 하나의 Cart가 여러 주문을 만들지 못하게 한다.
+
+## 5. OrderLine
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -73,11 +80,9 @@ Future: Product 1 --- N Item
 | `unitPrice` | 주문 시점 단가 | 0 이상 |
 | `lineAmount` | `quantity × unitPrice` | 서버 계산 |
 
-`productName`, `unitPrice`는 주문 당시 값을 보존한다. `itemId`는 이 MVP에 추가하지 않는다. 하나의 상품을 어떤 품목에서 출고·매입했는지는 재고/조달 기능과 함께 별도 할당 모델로 추가한다.
+`OrderLine`은 주문 후 변경하지 않는다. `itemId`는 이 MVP에 추가하지 않는다. 하나의 상품을 어떤 품목에서 출고·매입했는지는 재고/조달 기능과 함께 별도 할당 모델로 추가한다.
 
-## 7. 향후 Product와 Item 모델
-
-향후 카탈로그와 재고/매입 기능을 추가할 때 다음 책임으로 분리한다.
+## 6. 향후 Product와 Item 모델
 
 | 엔티티 | 책임 | 핵심 관계 |
 | --- | --- | --- |
@@ -85,9 +90,9 @@ Future: Product 1 --- N Item
 | `Item` | 매입 거래처, 매입가, 공급사 SKU, 재고 관리 단위 | 하나의 `Product`에 귀속 |
 | `OrderLine` | 주문 시점의 `Product`·수량·판매가 스냅샷 | `Order 1 : N OrderLine` |
 
-따라서 `Item`은 주문 라인을 의미하지 않으며, `OrderItem`이라는 클래스·테이블·API 이름을 만들지 않는다.
+`Item`은 주문 라인을 의미하지 않으며, `OrderItem`이라는 클래스·테이블·API 이름을 만들지 않는다.
 
-## 8. Payment
+## 7. Payment
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -105,9 +110,7 @@ Future: Product 1 --- N Item
 | `createdAt` | 생성 시각 | 필수 |
 | `updatedAt` | 마지막 상태 변경 시각 | 필수 |
 
-`providerTransactionId`는 승인/취소 시 외부 거래를 연결하는 최소 식별자다. 포인트 결제는 Fake Gateway가 생성한 거래 식별자를 사용한다.
-
-## 9. PaymentCancellation
+## 8. PaymentCancellation
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -122,9 +125,9 @@ Future: Product 1 --- N Item
 
 MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.status = CANCELLED`와 취소 레코드 생성은 같은 트랜잭션에서 처리한다.
 
-## 10. 결제수단별 데이터 매핑
+## 9. 결제수단별 데이터 매핑
 
-### 10.1 온라인 카드
+### 9.1 온라인 카드
 
 | 요청/결과 | 저장 위치 | 보존 정책 |
 | --- | --- | --- |
@@ -133,7 +136,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 | 승인번호 | `approvalNumber` | PG가 제공할 때 저장 |
 | 승인 시각/금액 | `approvedAt`, `amount` | 저장 |
 
-### 10.2 오프라인 카드 / VAN
+### 9.2 오프라인 카드 / VAN
 
 제공된 VAN 응답 모델에서 다음 값만 승인 저장 대상으로 삼는다.
 
@@ -152,7 +155,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 
 `VANApproveResponse`는 현장 단말/연동 계층의 파싱 참조로만 사용한다. API·도메인 계층에는 이를 직접 노출하지 않고 `OfflineCardApprovalCommand`로 필요한 값만 변환한다.
 
-### 10.3 자체 포인트
+### 9.3 자체 포인트
 
 | 요청/결과 | 저장 위치 | 보존 정책 |
 | --- | --- | --- |
@@ -162,9 +165,9 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 | 차감 금액·승인 시각 | `amount`, `approvedAt` | 저장 |
 | 채널(`ONLINE`/`OFFLINE`) | `metadata.channel` | 저장 가능 |
 
-## 11. metadata 정책
+## 10. metadata 정책
 
-`metadata`는 JSON 문자열로 저장하며, 검색·정합성의 핵심이 아닌 비민감 부가 정보만 담는다. 예시는 다음과 같다.
+`metadata`는 JSON 문자열로 저장하며, 검색·정합성의 핵심이 아닌 비민감 부가 정보만 담는다.
 
 ```json
 {
@@ -177,17 +180,11 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 }
 ```
 
-다음은 `metadata`에도 금지한다.
+`metadata`에도 API 요청/응답 원문 전체, VAN 원본 전문·바이너리·서명 데이터, 카드번호·Track2·PIN·주민번호·카드 인증 원문, 온라인 PG 토큰, 포인트 바코드 원문을 넣지 않는다.
 
-- API 요청/응답 원문 전체
-- VAN 원본 전문과 바이너리/서명 데이터
-- 카드번호, Track2, PIN, 주민번호 및 카드 인증 원문
-- 온라인 PG 토큰 또는 포인트 바코드 원문
+## 11. 인덱스와 무결성
 
-## 12. 인덱스와 무결성
-
-- `CartLine.cartId`, `Order.cartId`, `OrderLine.orderId`, `Payment.orderId`, `PaymentCancellation.paymentId`에 인덱스를 둔다.
-- `Order.cartId`에는 하나의 장바구니가 한 번만 주문으로 전환되도록 unique 제약을 둔다.
+- `Cart.idempotencyKey`, `Cart.orderId`, `Order.cartId`, `OrderLine.orderId`, `Payment.orderId`, `PaymentCancellation.paymentId`에 unique 또는 조회 인덱스를 둔다.
+- `Cart.idempotencyKey`, `Cart.orderId`, `Order.cartId`, `PaymentCancellation.paymentId`는 unique 제약을 둔다.
 - `Payment.providerTransactionId`는 결제수단 범위에서 유일해야 한다.
-- `PaymentCancellation.paymentId`는 하나의 승인 결제에 취소가 한 번만 연결되도록 unique 제약을 둔다.
 - 금액과 수량은 애플리케이션 검증과 DB 제약을 함께 적용한다.
