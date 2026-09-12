@@ -9,12 +9,16 @@
 ## 2. 엔티티 관계
 
 ```text
-Order 1 --- N OrderItem
+Order 1 --- N OrderLine
 Order 1 --- N Payment
 Payment 1 --- 0..1 PaymentCancellation
+
+Future: Product 1 --- N Item
 ```
 
-한 주문은 여러 상품 라인을 가진다. 이 MVP는 주문 전체 금액을 한 번에 결제하므로, 승인 가능한 `Payment`는 주문당 한 건이다. 결제 실패 기록은 남길 수 있다.
+`Product`는 고객에게 판매하는 상품 카탈로그 단위이고, `Item`은 매입가·매입 거래처·재고를 관리하는 품목 단위다. 하나의 `Product`에 여러 `Item`이 연결될 수 있다. 주문은 `Item`이 아니라 판매 시점의 `Product`를 참조하는 `OrderLine`을 가진다.
+
+이 MVP는 주문 전체 금액을 한 번에 결제하므로, 승인 가능한 `Payment`는 주문당 한 건이다. 결제 실패 기록은 남길 수 있다.
 
 ## 3. Order
 
@@ -27,13 +31,13 @@ Payment 1 --- 0..1 PaymentCancellation
 | `createdAt` | 주문 생성 시각 | 필수 |
 | `updatedAt` | 마지막 상태 변경 시각 | 필수 |
 
-정합성 규칙: `totalAmount = Σ(OrderItem.quantity × OrderItem.unitPrice)`.
+정합성 규칙: `totalAmount = Σ(OrderLine.quantity × OrderLine.unitPrice)`.
 
-## 4. OrderItem
+## 4. OrderLine
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
-| `id` | 상품 라인 식별자(UUID) | PK |
+| `id` | 주문 라인 식별자(UUID) | PK |
 | `orderId` | 소속 주문 식별자 | FK, 필수 |
 | `productId` | 상품 참조 식별자 | 필수 |
 | `productName` | 주문 시점 상품명 스냅샷 | 필수 |
@@ -41,9 +45,21 @@ Payment 1 --- 0..1 PaymentCancellation
 | `unitPrice` | 주문 시점 단가 | 0 이상 |
 | `lineAmount` | `quantity × unitPrice` | 서버 계산 |
 
-상품 마스터는 이 MVP의 범위가 아니다. `productName`, `unitPrice`는 주문 당시 값을 보존한다.
+`productName`, `unitPrice`는 주문 당시 값을 보존한다. `itemId`는 이 MVP에 추가하지 않는다. 하나의 상품을 어떤 품목에서 출고·매입했는지는 재고/조달 기능과 함께 별도 할당 모델로 추가한다.
 
-## 5. Payment
+## 5. 향후 Product와 Item 모델
+
+향후 카탈로그와 재고/매입 기능을 추가할 때 다음 책임으로 분리한다.
+
+| 엔티티 | 책임 | 핵심 관계 |
+| --- | --- | --- |
+| `Product` | 고객 판매명, 판매가, 노출 상태를 관리하는 상품 | `Product 1 : N Item` |
+| `Item` | 매입 거래처, 매입가, 공급사 SKU, 재고 관리 단위 | 하나의 `Product`에 귀속 |
+| `OrderLine` | 주문 시점의 `Product`·수량·판매가 스냅샷 | `Order 1 : N OrderLine` |
+
+따라서 `Item`은 주문 라인을 의미하지 않으며, `OrderItem`이라는 클래스·테이블·API 이름을 만들지 않는다.
+
+## 6. Payment
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -63,7 +79,7 @@ Payment 1 --- 0..1 PaymentCancellation
 
 `providerTransactionId`는 승인/취소 시 외부 거래를 연결하는 최소 식별자다. 포인트 결제는 Fake Gateway가 생성한 거래 식별자를 사용한다.
 
-## 6. PaymentCancellation
+## 7. PaymentCancellation
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -78,9 +94,9 @@ Payment 1 --- 0..1 PaymentCancellation
 
 MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.status = CANCELLED`와 취소 레코드 생성은 같은 트랜잭션에서 처리한다.
 
-## 7. 결제수단별 데이터 매핑
+## 8. 결제수단별 데이터 매핑
 
-### 7.1 온라인 카드
+### 8.1 온라인 카드
 
 | 요청/결과 | 저장 위치 | 보존 정책 |
 | --- | --- | --- |
@@ -89,7 +105,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 | 승인번호 | `approvalNumber` | PG가 제공할 때 저장 |
 | 승인 시각/금액 | `approvedAt`, `amount` | 저장 |
 
-### 7.2 오프라인 카드 / VAN
+### 8.2 오프라인 카드 / VAN
 
 제공된 VAN 응답 모델에서 다음 값만 승인 저장 대상으로 삼는다.
 
@@ -108,7 +124,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 
 `VANApproveResponse`는 현장 단말/연동 계층의 파싱 참조로만 사용한다. API·도메인 계층에는 이를 직접 노출하지 않고 `OfflineCardApprovalCommand`로 필요한 값만 변환한다.
 
-### 7.3 자체 포인트
+### 8.3 자체 포인트
 
 | 요청/결과 | 저장 위치 | 보존 정책 |
 | --- | --- | --- |
@@ -118,7 +134,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 | 차감 금액·승인 시각 | `amount`, `approvedAt` | 저장 |
 | 채널(`ONLINE`/`OFFLINE`) | `metadata.channel` | 저장 가능 |
 
-## 8. metadata 정책
+## 9. metadata 정책
 
 `metadata`는 JSON 문자열로 저장하며, 검색·정합성의 핵심이 아닌 비민감 부가 정보만 담는다. 예시는 다음과 같다.
 
@@ -140,9 +156,9 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 - 카드번호, Track2, PIN, 주민번호 및 카드 인증 원문
 - 온라인 PG 토큰 또는 포인트 바코드 원문
 
-## 9. 인덱스와 무결성
+## 10. 인덱스와 무결성
 
-- `OrderItem.orderId`, `Payment.orderId`, `PaymentCancellation.paymentId`에 인덱스를 둔다.
+- `OrderLine.orderId`, `Payment.orderId`, `PaymentCancellation.paymentId`에 인덱스를 둔다.
 - `Payment.providerTransactionId`는 결제수단 범위에서 유일해야 한다.
 - `PaymentCancellation.paymentId`는 하나의 승인 결제에 취소가 한 번만 연결되도록 unique 제약을 둔다.
 - 금액과 수량은 애플리케이션 검증과 DB 제약을 함께 적용한다.

@@ -12,12 +12,24 @@
 
 각 외부 결제 의존성은 개발용 `Fake*Gateway`로 대체한다.
 
+## 용어와 명명 규칙
+
+`Product`, `Item`, `OrderLine`은 서로 다른 의미로 고정한다. 주문에서 고객이 고른 상품과, 향후 재고·매입 관리를 위한 품목을 `Item`이라는 이름으로 혼용하지 않는다.
+
+| 용어 | 코드 명명 | 의미 |
+| --- | --- | --- |
+| 상품 | `Product` | 고객에게 판매하는 카탈로그 단위. 판매명·판매가의 기준이다. |
+| 품목 | `Item` | 매입·재고 관리 단위. 하나의 `Product`에 서로 다른 매입가 또는 매입 거래처를 가진 여러 `Item`이 연결될 수 있다. |
+| 주문 라인 | `OrderLine` | 한 주문에서 고객이 선택한 `Product`와 수량·주문 시점 판매가를 기록한 불변 스냅샷이다. |
+
+이 MVP는 `Product`와 `Item`의 영속 모델을 구현하지 않는다. 다만 주문 모델은 처음부터 `OrderLine`을 사용하며, `OrderItem`이라는 이름은 사용하지 않는다. 이후 재고 할당이 필요해질 때 `Product 1 : N Item` 관계와 `OrderLine`의 품목 할당 정보를 별도 기능으로 추가한다.
+
 ## 2. 목표와 비범위
 
 ### 목표
 
-- 한 주문에 하나 이상의 상품(`OrderItem`)을 생성한다.
-- 상품 라인의 합계와 요청 주문 총액을 서버에서 검증한다.
+- 한 주문에 하나 이상의 주문 라인(`OrderLine`)을 생성한다.
+- 주문 라인의 합계와 요청 주문 총액을 서버에서 검증한다.
 - 세 결제수단별 요청 데이터를 타입 안전하게 분리한다.
 - 승인 결과를 결제 및 주문 상태에 원자적으로 반영한다.
 - 승인과 취소에 필요한 최소 식별자·금액·시각을 저장한다.
@@ -35,9 +47,9 @@
 
 ### 3.1 주문 생성
 
-1. 클라이언트가 고객 식별자와 한 개 이상의 상품 라인을 보낸다.
+1. 클라이언트가 고객 식별자와 한 개 이상의 주문 라인을 보낸다.
 2. 서버는 `quantity × unitPrice`의 합이 `totalAmount`와 같은지 검증한다.
-3. 서버는 `Order(CREATED)`와 `OrderItem`들을 생성하고 주문 식별자 및 금액을 반환한다.
+3. 서버는 `Order(CREATED)`와 `OrderLine`들을 생성하고 주문 식별자 및 금액을 반환한다.
 
 ### 3.2 온라인 카드
 
@@ -125,7 +137,7 @@ interface PointPaymentGateway {
 ```json
 {
   "customerId": "customer-001",
-  "items": [
+  "orderLines": [
     { "productId": "americano", "productName": "아메리카노", "quantity": 2, "unitPrice": 4500 },
     { "productId": "cake", "productName": "케이크", "quantity": 1, "unitPrice": 6000 }
   ],
@@ -140,7 +152,7 @@ interface PointPaymentGateway {
   "orderId": "uuid",
   "status": "CREATED",
   "totalAmount": 15000,
-  "items": [
+  "orderLines": [
     { "productId": "americano", "quantity": 2, "unitPrice": 4500, "lineAmount": 9000 },
     { "productId": "cake", "quantity": 1, "unitPrice": 6000, "lineAmount": 6000 }
   ]
@@ -232,7 +244,7 @@ interface PointPaymentGateway {
 ```json
 {
   "code": "ORDER_AMOUNT_MISMATCH",
-  "message": "상품 라인 합계와 주문 총액이 일치하지 않습니다."
+  "message": "주문 라인 합계와 주문 총액이 일치하지 않습니다."
 }
 ```
 
