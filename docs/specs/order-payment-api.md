@@ -2,7 +2,7 @@
 
 > 상태: 초안 · 작성일: 2026-09-13 · 최종 갱신일: 2026-09-13
 
-> 이 문서는 [PRD](../prd.md), [데이터 모델](../data-model.md), [ADR-0001](../adr/0001-payment-gateway-by-method.md), [ADR-0002](../adr/0002-cart-checkout-creates-order.md)를 바탕으로 기본적인 주문·결제 수직 흐름을 실제 Spring Boot API로 만드는 기술 초안이다. 운영 수준의 완성형 설계가 아니라, 자동 테스트로 검증되는 최소 뼈대를 먼저 만들고 이후 기능을 작은 단위로 붙여 나간다.
+> 이 문서는 [문서 가이드](../README.md), [PRD](../prd.md), [데이터 모델](../data-model.md), [ADR-0001](../adr/0001-payment-gateway-by-method.md), [ADR-0002](../adr/0002-cart-checkout-creates-order.md)를 바탕으로 기본적인 주문·결제 수직 흐름을 실제 Spring Boot API로 만드는 기술 초안이다. 운영 수준의 완성형 설계가 아니라, 자동 테스트로 검증되는 최소 뼈대를 먼저 만들고 이후 기능을 작은 단위로 붙여 나간다.
 
 ## 1. 범위
 

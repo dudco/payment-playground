@@ -1,5 +1,7 @@
 # 주문·결제 API PRD
 
+> 문서 역할과 갱신 원칙은 [문서 가이드](README.md)를 따른다. 구현 상세는 [기능 스펙](specs/order-payment-api.md), 공유 영속 규칙은 [데이터 모델](data-model.md)을 기준으로 한다.
+
 ## 1. 목적
 
 이 문서는 `payment-playground`의 첫 장바구니 초안·주문·결제 API 범위를 정의한다. REST API와 자동 테스트만 제공하며, 실제 PG/VAN 네트워크 통신이나 UI는 범위에 포함하지 않는다.

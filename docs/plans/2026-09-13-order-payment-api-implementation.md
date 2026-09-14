@@ -10,6 +10,8 @@
 
 **Specification:** `docs/specs/order-payment-api.md` (초안, 2026-09-13)
 
+**Documentation Guide:** `docs/README.md`
+
 ---
 
 ## Task 1: 테스트 DB와 Cart API 계약
