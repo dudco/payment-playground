@@ -31,7 +31,7 @@
 
 ### 목표
 
-- `POST /cart`에서 선택적 멱등키로 변경 가능한 주문 초안을 생성·갱신하고, `GET /cart`로 선택적으로 조회한다.
+- `POST /order/cart`에서 선택적 멱등키로 변경 가능한 주문 초안을 생성·갱신하고, `GET /order/cart`로 선택적으로 조회한다.
 - `POST /order`는 장바구니 생성에 사용한 `Idempotency-Key`가 있을 때만 허용한다.
 - Cart의 복수 상품을 불변 `OrderLine`으로 전환한다.
 - 주문 라인의 합계와 주문 총액을 서버에서 계산·검증한다.
@@ -53,40 +53,27 @@
 
 ### 4.1 Cart 생성·갱신과 선택적 조회
 
-1. 클라이언트는 고객 식별자와 하나 이상의 `orderLines`를 `POST /cart`로 보낸다. `Idempotency-Key`는 선택 사항이다.
+1. 클라이언트는 고객 식별자와 하나 이상의 `orderLines`를 `POST /order/cart`로 보낸다. `Idempotency-Key`는 선택 사항이다.
 2. 키가 없으면 서버가 새 키를 발급하고 `Cart(ACTIVE)`를 생성한다.
 3. 키가 있으면 해당 키의 활성 Cart를 생성하거나, 이미 존재하는 활성 Cart의 주문 내용을 최신 요청으로 교체한다. 동일 키에서 주문 내용은 변경 가능하다.
-4. 클라이언트는 필요할 때 같은 `Idempotency-Key`로 `GET /cart`를 호출해 초안을 조회한다. 이 호출은 주문 생성의 선행 조건이 아니다.
+4. 클라이언트는 필요할 때 같은 `Idempotency-Key`로 `GET /order/cart`를 호출해 초안을 조회한다. 이 호출은 주문 생성의 선행 조건이 아니다.
 
 ### 4.2 Cart에서 주문 생성
 
 1. 클라이언트는 `POST /order`에 `Idempotency-Key`를 필수 헤더로 보낸다.
-2. 서버는 해당 키의 `ACTIVE` Cart가 있을 때만 주문 생성을 허용한다. `GET /cart` 호출 여부는 검사하지 않는다.
+2. 서버는 해당 키의 `ACTIVE` Cart가 있을 때만 주문 생성을 허용한다. `GET /order/cart` 호출 여부는 검사하지 않는다.
 3. 서버는 Cart의 `orderLines`를 읽어 총액을 계산하고, `Order(CREATED)`와 불변 `OrderLine` 스냅샷들을 생성한다.
 4. 주문과 Cart 상태 전이는 하나의 트랜잭션에서 처리하며 Cart를 `ORDER_CREATED`로 전이한다.
 5. 동일 키로 `POST /order`를 재호출하면 새 주문을 만들지 않고 기존 주문을 반환한다. `ORDER_CREATED` Cart의 주문 내용은 더 이상 변경할 수 없다.
 
-### 4.3 온라인 카드
+### 4.3 결제 생성
 
-1. 클라이언트가 주문에 대한 온라인 카드 결제를 생성한다.
-2. 앱의 웹뷰/PG가 발급한 `paymentToken`을 서버에 전달한다.
-3. `FakeOnlineCardPaymentGateway`가 토큰 기반 승인을 수행한다.
-4. 성공하면 `Payment`는 `APPROVED`, 주문은 `PAID`가 된다.
-
-### 4.4 오프라인 카드
-
-1. POS/키오스크는 VAN 승인 완료 뒤 결과를 서버에 전송한다.
-2. 클라이언트는 승인번호, VAN 거래 고유번호, 응답코드, 승인시각, 금액·부가세, 카드사 코드를 보낸다.
-3. `FakeOfflineCardPaymentGateway`는 성공 응답코드와 주문 금액 일치를 검증하고 승인 결과를 반영한다.
+1. 클라이언트는 `POST /payments`에 대상 `orderId`, 결제수단 `method`, 수단별 승인 정보를 보낸다.
+2. 서버는 `method`에 따라 하나의 전용 Fake Gateway를 선택한다.
+3. 온라인 카드는 PG 토큰으로 승인하고, 오프라인 카드는 단말의 VAN 승인 결과를 접수하며, 포인트는 바코드 또는 등록 결제수단 참조값으로 차감한다.
 4. 성공하면 `Payment`는 `APPROVED`, 주문은 `PAID`가 된다.
 
 오프라인 Gateway는 VAN 통신을 새로 실행하지 않는다. 단말이 이미 받은 승인 결과를 안전한 형태로 접수하는 책임만 가진다.
-
-### 4.5 자체 포인트
-
-1. 오프라인은 `barcode`, 온라인은 `pointPaymentMethodId`로 결제를 요청한다.
-2. `FakePointPaymentGateway`가 참조값과 결제금액을 검증하고 차감 결과를 만든다.
-3. 성공하면 `Payment`는 `APPROVED`, 주문은 `PAID`가 된다.
 
 ## 5. 상태 전이와 멱등성
 
@@ -107,7 +94,7 @@ Payment: PENDING -> APPROVED -> CANCELLED
                  -> FAILED
 ```
 
-- 동일 `Idempotency-Key`의 `POST /cart`는 `ACTIVE` Cart 주문 내용을 최신 요청으로 교체한다.
+- 동일 `Idempotency-Key`의 `POST /order/cart`는 `ACTIVE` Cart 주문 내용을 최신 요청으로 교체한다.
 - `ORDER_CREATED` Cart는 갱신하거나 다시 주문으로 전환할 수 없다.
 - 동일 키의 `POST /order` 재호출은 기존 주문을 반환한다.
 - `PAID` 주문에는 새 결제를 생성할 수 없다.
@@ -139,7 +126,7 @@ interface PointPaymentGateway {
 
 ### Cart 생성 또는 갱신
 
-`POST /cart`
+`POST /order/cart`
 
 요청 헤더 `Idempotency-Key`는 선택 사항이다. 없으면 서버가 키를 발급해 응답 헤더에 반환한다. 있으면 해당 키의 `ACTIVE` Cart를 생성하거나 최신 주문 내용으로 갱신한다.
 
@@ -169,7 +156,7 @@ interface PointPaymentGateway {
 
 ### Cart 조회 (선택)
 
-`GET /cart`
+`GET /order/cart`
 
 요청 헤더 `Idempotency-Key`가 필수다. 주문 생성 전에 호출할 필요는 없다.
 
@@ -192,7 +179,7 @@ interface PointPaymentGateway {
 
 `POST /order`
 
-요청 헤더 `Idempotency-Key`가 필수다. 해당 키로 `POST /cart`가 먼저 성공한 경우에만 주문을 생성한다.
+요청 헤더 `Idempotency-Key`가 필수다. 해당 키로 `POST /order/cart`가 먼저 성공한 경우에만 주문을 생성한다.
 
 응답: 최초 생성은 `201 Created`, 같은 키로 재호출하면 `200 OK`와 기존 주문을 반환한다.
 
@@ -209,46 +196,61 @@ interface PointPaymentGateway {
 }
 ```
 
-### 온라인 카드 승인
+### 결제 생성
 
-`POST /orders/{orderId}/payments/online-card`
+`POST /payments`
 
-```json
-{ "paymentToken": "fake-online-token", "amount": 15000 }
-```
+`method`는 필수이며 `ONLINE_CARD`, `OFFLINE_CARD`, `POINT` 중 하나다. `paymentDetails`에는 `method`에 맞는 필드만 허용한다. 서버는 `method`에 따라 하나의 전용 Fake Gateway를 선택한다.
 
-응답: `201 Created` (승인 성공) 또는 `422 Unprocessable Entity` (승인 거절)
-
-### 오프라인 카드 승인 결과 접수
-
-`POST /orders/{orderId}/payments/offline-card`
+온라인 카드:
 
 ```json
 {
-  "terminalId": "CAT-001",
-  "vanTransactionId": "van-transaction-001",
-  "approvalNumber": "12345678",
-  "approvedAt": "2026-09-13T10:20:30+09:00",
-  "responseCode": "0000",
+  "orderId": "uuid",
+  "method": "ONLINE_CARD",
   "amount": 15000,
-  "vatAmount": 1364,
-  "issuerCode": "01",
-  "acquirerCode": "01",
-  "maskedCardNumber": "1234-****-****-5678"
+  "paymentDetails": { "paymentToken": "fake-online-token" }
 }
 ```
 
-응답: `201 Created` (승인 성공) 또는 `422 Unprocessable Entity` (응답코드·금액 검증 실패)
+오프라인 카드:
 
-### 자체 포인트 승인
+```json
+{
+  "orderId": "uuid",
+  "method": "OFFLINE_CARD",
+  "amount": 15000,
+  "paymentDetails": {
+    "terminalId": "CAT-001",
+    "vanTransactionId": "van-transaction-001",
+    "approvalNumber": "12345678",
+    "approvedAt": "2026-09-13T10:20:30+09:00",
+    "responseCode": "0000",
+    "vatAmount": 1364,
+    "issuerCode": "01",
+    "acquirerCode": "01",
+    "maskedCardNumber": "1234-****-****-5678"
+  }
+}
+```
 
-`POST /orders/{orderId}/payments/points`
+자체 포인트:
 
-오프라인: `{ "channel": "OFFLINE", "barcode": "point-barcode-reference", "amount": 15000 }`
+```json
+{
+  "orderId": "uuid",
+  "method": "POINT",
+  "amount": 15000,
+  "paymentDetails": {
+    "channel": "OFFLINE",
+    "barcode": "point-barcode-reference"
+  }
+}
+```
 
-온라인: `{ "channel": "ONLINE", "pointPaymentMethodId": "point-method-001", "amount": 15000 }`
+`POINT`의 온라인 요청은 `paymentDetails.channel`을 `ONLINE`으로, `barcode` 대신 `pointPaymentMethodId`로 보낸다.
 
-응답: `201 Created` (승인 성공) 또는 `422 Unprocessable Entity` (잔액 부족·참조값 검증 실패)
+응답: `201 Created` (승인 성공) 또는 `422 Unprocessable Entity` (승인 거절·금액 검증 실패)
 
 ### 결제 취소
 
@@ -272,7 +274,7 @@ interface PointPaymentGateway {
 - `400 Bad Request`: 필수값 누락, 잘못된 형식, 0 이하 수량/금액
 - `404 Not Found`: 해당 멱등키의 Cart, 주문 또는 결제가 존재하지 않음
 - `409 Conflict`: `ORDER_CREATED` Cart의 주문 내용 갱신, 현재 상태에서 허용되지 않는 결제/취소
-- `422 Unprocessable Entity`: Gateway 승인 거절 또는 금액 불일치
+- `422 Unprocessable Entity`: Gateway 승인 거절, 결제수단별 필수값 누락 또는 금액 불일치
 
 ## 9. 보안 및 개인정보 정책
 
@@ -284,8 +286,8 @@ interface PointPaymentGateway {
 
 ## 10. 수용 조건
 
-- 키 없는 `POST /cart`가 멱등키를 발급하고, 동일 키의 `POST /cart`가 `ACTIVE` Cart 주문 내용을 갱신하는지 자동 테스트한다.
-- `POST /order`가 사전 Cart 없이 거절되고, `GET /cart` 호출 없이도 유효한 키로 주문을 생성하는지 자동 테스트한다.
+- 키 없는 `POST /order/cart`가 멱등키를 발급하고, 동일 키의 `POST /order/cart`가 `ACTIVE` Cart 주문 내용을 갱신하는지 자동 테스트한다.
+- `POST /order`가 사전 Cart 없이 거절되고, `GET /order/cart` 호출 없이도 유효한 키로 주문을 생성하는지 자동 테스트한다.
 - Cart의 복수 상품이 불변 주문 라인으로 전환되고, 동일 키의 재호출이 중복 주문을 만들지 않으며 주문 뒤 Cart 갱신이 거절되는지 자동 테스트한다.
 - 온라인 카드, 오프라인 카드, 포인트 결제가 각각 올바른 Fake Gateway를 통해 승인된다.
 - 각 승인 성공 시 결제는 `APPROVED`, 주문은 `PAID`가 된다.

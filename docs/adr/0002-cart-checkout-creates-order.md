@@ -11,9 +11,9 @@
 
 ## 결정
 
-- Cart는 `Idempotency-Key`로 식별한다. `POST /cart`의 키는 선택 사항이며, 없으면 서버가 발급한다.
-- 동일 키의 `POST /cart`는 `ACTIVE` Cart의 `orderLines`를 최신 요청으로 교체한다. 동일 키에서 주문 내용 변경을 허용한다.
-- `GET /cart`는 같은 키로 Cart를 조회하는 선택 API이며, `POST /order`의 선행 조건이 아니다.
+- Cart는 `Idempotency-Key`로 식별한다. `POST /order/cart`의 키는 선택 사항이며, 없으면 서버가 발급한다.
+- 동일 키의 `POST /order/cart`는 `ACTIVE` Cart의 `orderLines`를 최신 요청으로 교체한다. 동일 키에서 주문 내용 변경을 허용한다.
+- `GET /order/cart`는 같은 키로 Cart를 조회하는 선택 API이며, `POST /order`의 선행 조건이 아니다.
 - `POST /order`는 `Idempotency-Key` 헤더를 필수로 받고, 해당 키의 `ACTIVE` Cart가 있을 때만 주문을 생성한다.
 - 주문 생성은 Cart의 `orderLinesJson`을 불변 `OrderLine`으로 복사하고, Cart를 `ORDER_CREATED`로 전이한다.
 - `ORDER_CREATED` Cart는 더 이상 갱신할 수 없다. 같은 키의 `POST /order` 재호출은 새 주문을 만들지 않고 기존 주문을 반환한다.

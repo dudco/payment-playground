@@ -35,7 +35,7 @@ Future: Product 1 --- N Item
 | `createdAt` | Cart 생성 시각 | 필수 |
 | `updatedAt` | 마지막 갱신/상태 변경 시각 | 필수 |
 
-`ACTIVE` Cart는 동일 `idempotencyKey`의 `POST /cart`로 주문 초안을 교체할 수 있다. `ORDER_CREATED` Cart는 갱신할 수 없다.
+`ACTIVE` Cart는 동일 `idempotencyKey`의 `POST /order/cart`로 주문 초안을 교체할 수 있다. `ORDER_CREATED` Cart는 갱신할 수 없다.
 
 `orderLinesJson`은 다음 비민감 필드만 허용한다.
 
