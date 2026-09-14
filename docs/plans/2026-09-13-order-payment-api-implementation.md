@@ -1,14 +1,14 @@
-# 주문·결제 API 구현 계획
+# 주문·결제 API 초안 구현 계획
 
 > **For implementer:** Use TDD throughout. Write failing test first. Watch it fail. Then implement.
 
-**Goal:** 멱등키 기반 Cart에서만 주문을 생성하고, 단일 `POST /payments` API로 온라인 카드·오프라인 카드·포인트 결제를 처리한다.
+**Goal:** 멱등키 기반 Cart에서만 주문을 생성하고, 단일 `POST /payments` API로 온라인 카드·오프라인 카드·포인트 결제를 처리하는 최소 수직 흐름을 만든다. 이 초안은 자동 테스트로 검증되는 작동 뼈대이며, 이후 실제 연동과 운영 기능을 작은 변경으로 붙여 나간다.
 
 **Architecture:** Spring MVC Controller → Transactional Service → Spring Data JPA Repository 구조를 사용한다. Cart는 JSON 주문 초안을 저장하고 주문 전환 시에만 Order/OrderLine으로 복사한다. 결제수단별 Gateway 인터페이스를 유지하되 API는 `method`로 Gateway를 선택한다.
 
 **Tech Stack:** Kotlin, Spring Boot, Spring MVC, Bean Validation, Spring Data JPA, SQLite, MockMvc, JUnit 5.
 
-**Specification:** `docs/specs/order-payment-api.md`
+**Specification:** `docs/specs/order-payment-api.md` (초안, 2026-09-13)
 
 ---
 

@@ -1,10 +1,12 @@
-# 주문·결제 API 구현 명세
+# 주문·결제 API 초안 명세
 
-> 이 문서는 [PRD](../prd.md), [데이터 모델](../data-model.md), [ADR-0001](../adr/0001-payment-gateway-by-method.md), [ADR-0002](../adr/0002-cart-checkout-creates-order.md)를 실제 Spring Boot API로 구현하기 위한 기술 명세다.
+> 상태: 초안 · 작성일: 2026-09-13 · 최종 갱신일: 2026-09-13
+
+> 이 문서는 [PRD](../prd.md), [데이터 모델](../data-model.md), [ADR-0001](../adr/0001-payment-gateway-by-method.md), [ADR-0002](../adr/0002-cart-checkout-creates-order.md)를 바탕으로 기본적인 주문·결제 수직 흐름을 실제 Spring Boot API로 만드는 기술 초안이다. 운영 수준의 완성형 설계가 아니라, 자동 테스트로 검증되는 최소 뼈대를 먼저 만들고 이후 기능을 작은 단위로 붙여 나간다.
 
 ## 1. 범위
 
-이번 구현은 다음 HTTP API와 인프로세스 Fake Gateway를 제공한다.
+이번 초안 구현은 다음 HTTP API와 인프로세스 Fake Gateway를 제공한다. 각 API는 향후 실제 PG/VAN 연동, 할인, 재시도·대사 기능으로 확장할 수 있도록 최소 책임만 가진다.
 
 - `POST /order/cart`: 멱등키 기반 Cart 초안 생성 또는 갱신
 - `GET /order/cart`: 멱등키 기반 Cart 초안 선택 조회
