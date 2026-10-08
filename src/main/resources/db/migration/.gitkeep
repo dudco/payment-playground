@@ -1,0 +1,1 @@
+# Keeps the Flyway migration location present until the first migration is added.
