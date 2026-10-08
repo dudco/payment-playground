@@ -1,6 +1,6 @@
 # ADR-0002: 멱등키 기반 Cart 초안에서만 주문 생성
 
-- 상태: 승인됨
+- 상태: 일부 대체됨 ([ADR-0003](0003-cart-in-redis-with-ttl.md): Cart 저장소와 `ORDER_CREATED` 상태)
 - 일자: 2026-09-13
 
 ## 맥락

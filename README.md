@@ -4,18 +4,20 @@
 
 ## MVP 초안 범위
 
-- `POST /order/cart`로 멱등키 기반 주문 초안 생성·갱신
+트래픽이 거의 없는 환경에서 올바르게 동작하는 기본 API가 목표다. 이 단계가 의도적으로 막지 않는 문제는 [PRD의 알려진 한계](docs/prd.md#10-알려진-한계)에 기록한다.
+
+- `POST /order/cart`로 멱등키 기반 주문 초안(Redis, TTL) 생성·갱신
 - `POST /order`로 Cart 초안을 불변 주문으로 전환
 - `POST /payments`에서 `method`로 온라인 카드·오프라인 카드·자체 포인트 결제 생성
 - 인프로세스 Fake Gateway 승인 뒤 주문·결제 상태 전이
-- `POST /payments/{paymentId}/cancellations`로 승인 결제 전액 취소
 - UI와 실제 PG/VAN 네트워크 없이 REST API와 자동 테스트만 제공
 
 ## 기술 스택
 
 - Kotlin, Spring Boot, Java 21
 - SQLite: 주문·결제 데이터를 로컬 파일로 저장
-- Redis: 현재는 연결 설정만 두며, 이후 단기 중복 완화·작업 처리 보조에 사용
+- Flyway: SQLite 스키마 마이그레이션 (`src/main/resources/db/migration`)
+- Redis: Cart 초안을 TTL과 함께 저장
 - Gradle Wrapper
 
 ## 실행
@@ -25,7 +27,7 @@
 ./gradlew bootRun
 ```
 
-Redis가 기본 주소(`localhost:6379`)에서 실행 중이어야 합니다. 다른 주소는 `REDIS_HOST`, `REDIS_PORT` 환경 변수로 지정합니다.
+`bootRun` 시 Flyway가 `./data/payment-playground.db`에 마이그레이션을 자동 적용합니다. 애플리케이션과 테스트 모두 Redis가 기본 주소(`localhost:6379`)에서 실행 중이어야 합니다. 다른 주소는 `REDIS_HOST`, `REDIS_PORT` 환경 변수로 지정합니다.
 
 ## 문서 구조
 
@@ -41,8 +43,10 @@ Redis가 기본 주소(`localhost:6379`)에서 실행 중이어야 합니다. �
 
 문제를 먼저 재현하고, 그 문제를 해결하는 최소 기능만 다음 단계에 추가합니다.
 
-1. 단일 결제 한계 재현 → 분할 결제, 결제 배분, 부분 취소
-2. 실제 비동기 PG/VAN 연동 재현 → 웹훅 중복 제거, 상태 대사
-3. 지연·역순·응답 유실 재현 → 상태 머신, `UNKNOWN`, 대사
-4. 작업 처리 실패 재현 → Outbox, 재시도, DLQ
-5. 장기 장바구니 요구 재현 → Cart 만료·병합, 고객당 활성 Cart 단일화
+1. 동시 결제·동시 주문 재현 → 락 또는 낙관적 버전, 결제 요청 멱등키
+2. 승인 후 되돌림 요구 재현 → 결제 취소(전액)
+3. 단일 결제 한계 재현 → 분할 결제, 결제 배분, 부분 취소
+4. 실제 비동기 PG/VAN 연동 재현 → `PENDING` 상태, 웹훅 중복 제거, 상태 대사
+5. 지연·역순·응답 유실 재현 → 상태 머신, `UNKNOWN`, 대사
+6. 작업 처리 실패 재현 → Outbox, 재시도, DLQ
+7. 장기 장바구니 요구 재현 → Cart 병합, 고객당 활성 Cart 단일화

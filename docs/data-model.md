@@ -4,73 +4,89 @@
 
 ## 1. 목적
 
-이 문서는 장바구니 초안·주문·결제 API의 영속 모델과 데이터 보존 기준을 정의한다. SQLite/JPA 구현을 전제로 하되, 특정 ORM 어노테이션이나 컬럼 타입은 구현 계획에서 확정한다.
+이 문서는 장바구니 초안·주문·결제 API의 저장 모델과 데이터 보존 기준을 정의한다. Cart는 Redis, 주문·결제는 SQLite/JPA에 저장한다([ADR-0003](adr/0003-cart-in-redis-with-ttl.md)). RDB 스키마는 Flyway SQL 마이그레이션으로만 만들고 바꾼다([ADR-0004](adr/0004-flyway-schema-migration.md)). 이 문서의 필드·제약이 바뀌면 새 마이그레이션 버전 파일을 함께 추가한다.
 
 금액은 KRW 최소 단위인 정수로 저장한다. 통화 변환은 지원하지 않는다.
 
-## 2. 엔티티 관계
+## 2. 저장소와 관계
 
 ```text
-Cart 1 --- 0..1 Order
-Order 1 --- N OrderLine
-Order 1 --- N Payment
-Payment 1 --- 0..1 PaymentCancellation
+[Redis]  Cart (cart:{idempotencyKey}, TTL)
+            ┆ idempotencyKey로 논리 연결 (FK 없음)
+[RDB]    Order 1 --- N OrderLine
+         Order 1 --- N Payment
 
 Future: Product 1 --- N Item
 ```
 
-`Cart`는 별도 `CartLine` 테이블을 가지지 않는다. `Cart.orderLinesJson`에 주문 초안 라인을 JSON 스냅샷으로 보관하고, 주문 생성 시에만 `OrderLine` 행으로 복사한다.
+`Cart`는 별도 `CartLine`을 가지지 않는다. Cart JSON 안의 `orderLines` 배열에 주문 초안 라인을 보관하고, 주문 생성 시에만 `OrderLine` 행으로 복사한다.
+
+"이 멱등키로 주문이 생성되었는가"의 유일한 기준은 `orders.idempotency_key`다. Redis Cart에는 상태를 두지 않는다.
 
 `Product`는 고객에게 판매하는 상품 카탈로그 단위이고, `Item`은 매입가·매입 거래처·재고를 관리하는 품목 단위다. 하나의 `Product`에 여러 `Item`이 연결될 수 있다. 주문은 `Item`이 아니라 판매 시점의 `Product`를 참조하는 `OrderLine`을 가진다.
 
-## 3. Cart
+### 테이블 명명
+
+`order`는 SQL 예약어이므로 주문 테이블은 `orders`로 고정한다. 엔티티 클래스 이름은 `Order`를 유지하고 `@Table(name = "orders")`로 매핑한다. 나머지 테이블은 `order_lines`, `payments`로 쓴다.
+
+## 3. Cart (Redis)
+
+- 키: `cart:{idempotencyKey}`
+- 값: 아래 필드를 가진 JSON 문자열 하나
+- TTL: 설정값 `payment-playground.cart.ttl`(기본 1시간). 생성·갱신할 때마다 다시 설정한다.
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
-| `id` | 내부 Cart 식별자(UUID) | PK |
-| `idempotencyKey` | Cart 생성·조회·주문 전환에 쓰는 키 | unique, 필수 |
-| `customerId` | 고객 참조 식별자 | 필수 |
-| `status` | `ACTIVE`, `ORDER_CREATED` | 필수 |
-| `orderLinesJson` | 상품·수량·판매가의 주문 초안 스냅샷 | 필수, 비어 있지 않음 |
-| `totalAmount` | `orderLinesJson`에서 계산한 합계 | 0보다 큼 |
-| `orderId` | 전환 후 생성된 주문 식별자 | unique, nullable |
+| `idempotencyKey` | Cart 생성·조회·주문 전환에 쓰는 키 | 필수, 키 이름과 동일 |
+| `customerId` | 고객 참조 식별자 | 필수, 생성 후 변경 불가 |
+| `orderLines` | 상품·수량·판매가의 주문 초안 스냅샷 배열 | 필수, 비어 있지 않음 |
+| `totalAmount` | `orderLines`에서 계산한 합계 | 0보다 큼 |
 | `createdAt` | Cart 생성 시각 | 필수 |
-| `updatedAt` | 마지막 갱신/상태 변경 시각 | 필수 |
+| `updatedAt` | 마지막 갱신 시각 | 필수 |
 
-`ACTIVE` Cart는 동일 `idempotencyKey`의 `POST /order/cart`로 주문 초안을 교체할 수 있다. `ORDER_CREATED` Cart는 갱신할 수 없다.
+`expiresAt`은 저장하지 않고 응답할 때 Redis TTL로 계산한다.
 
-`orderLinesJson`은 다음 비민감 필드만 허용한다.
+`orderLines`의 각 원소는 다음 비민감 필드만 허용한다.
 
 ```json
-[
-  {
-    "productId": "americano",
-    "productName": "아메리카노",
-    "quantity": 2,
-    "unitPrice": 4500
-  }
-]
+{
+  "productId": "americano",
+  "productName": "아메리카노",
+  "quantity": 2,
+  "unitPrice": 4500
+}
 ```
 
-원 주문 요청 전체, 카드 정보, PG 토큰, 포인트 바코드, VAN 원문은 이 JSON에 저장하지 않는다.
+원 주문 요청 전체, 카드 정보, PG 토큰, 포인트 바코드, VAN 원문은 Cart에 저장하지 않는다.
 
-## 4. Order
+Cart 생명주기:
+
+1. `POST /order/cart`로 생성된다.
+2. 같은 키의 `POST /order/cart`로 내용이 교체되고 TTL이 다시 설정된다. `customerId`가 다르면 거절한다.
+3. `POST /order`가 커밋되면 삭제된다. 삭제되지 않더라도 TTL이 지나면 사라진다.
+
+## 4. Order (`orders`)
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
 | `id` | 주문 식별자(UUID) | PK |
-| `cartId` | 원본 Cart 내부 식별자 | FK, unique, 필수 |
+| `idempotencyKey` | 원본 Cart의 멱등키 | unique, 필수 |
 | `customerId` | 고객 참조 식별자 | 필수 |
-| `status` | `CREATED`, `PAYMENT_PENDING`, `PAID`, `CANCELLED` | 필수 |
+| `status` | `CREATED`, `PAID` | 필수 |
 | `totalAmount` | 주문 총액 | 0보다 큼 |
 | `createdAt` | 주문 생성 시각 | 필수 |
 | `updatedAt` | 마지막 상태 변경 시각 | 필수 |
 
 정합성 규칙: `totalAmount = Σ(OrderLine.quantity × OrderLine.unitPrice)`.
 
-`POST /order`는 Cart·Order·OrderLine 생성과 `Cart.status = ORDER_CREATED`, `Cart.orderId` 설정을 하나의 트랜잭션에서 수행한다. `Order.cartId`의 unique 제약으로 하나의 Cart가 여러 주문을 만들지 못하게 한다.
+`POST /order`는 Order·OrderLine 생성을 하나의 DB 트랜잭션에서 수행하고, 커밋 후 Redis Cart를 삭제한다. `idempotencyKey`의 unique 제약으로 하나의 키가 여러 주문을 만들지 못하게 한다.
 
-## 5. OrderLine
+상태:
+
+- `CREATED`: 결제 가능. `FAILED` 결제가 있어도 이 상태를 유지한다.
+- `PAID`: `APPROVED` 결제가 하나 있다. 새 결제 불가.
+
+## 5. OrderLine (`order_lines`)
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
@@ -94,42 +110,28 @@ Future: Product 1 --- N Item
 
 `Item`은 주문 라인을 의미하지 않으며, `OrderItem`이라는 클래스·테이블·API 이름을 만들지 않는다.
 
-## 7. Payment
+## 7. Payment (`payments`)
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
 | `id` | 결제 식별자(UUID) | PK |
 | `orderId` | 대상 주문 식별자 | FK, 필수 |
 | `method` | `ONLINE_CARD`, `OFFLINE_CARD`, `POINT` | 필수 |
-| `status` | `PENDING`, `APPROVED`, `FAILED`, `CANCELLED` | 필수 |
+| `status` | `APPROVED`, `FAILED` | 필수 |
 | `amount` | 승인 요청/승인 금액 | 주문 총액과 일치 |
-| `providerTransactionId` | 외부 결제/VAN 거래 고유번호 | 승인 뒤 필수, 결제수단별 유일 |
+| `providerTransactionId` | 외부 결제/VAN 거래 고유번호 | `APPROVED`면 필수, 결제수단별 유일 |
 | `approvalNumber` | 승인번호 | 카드 승인에 사용, nullable |
-| `approvedAt` | 승인 시각 | 승인 뒤 필수 |
-| `failureCode` | 거절/검증 실패 코드 | 실패 시 필수 |
-| `failureMessage` | 비민감 실패 설명 | 실패 시 사용 |
+| `approvedAt` | 승인 시각 | `APPROVED`면 필수 |
+| `failureCode` | Gateway 거절 코드 | `FAILED`면 필수 |
+| `failureMessage` | 비민감 거절 설명 | `FAILED`면 사용 |
 | `metadata` | 비민감 부가 정보 JSON | nullable |
 | `createdAt` | 생성 시각 | 필수 |
-| `updatedAt` | 마지막 상태 변경 시각 | 필수 |
 
-## 8. PaymentCancellation
+Payment는 Gateway 결과가 나온 뒤 한 번 저장되며 이후 상태가 바뀌지 않는다. 그래서 `updatedAt`을 두지 않는다. Gateway 호출 전 요청 검증에서 거절된 요청은 Payment를 만들지 않는다.
 
-| 필드 | 설명 | 제약 |
-| --- | --- | --- |
-| `id` | 취소 식별자(UUID) | PK |
-| `paymentId` | 원 승인 결제 식별자 | FK, unique, 필수 |
-| `providerCancellationId` | 외부 취소 거래 식별자 | 필수 |
-| `originalProviderTransactionId` | 원 승인 거래 식별자 | 필수 |
-| `amount` | 취소 금액 | 원 결제 금액과 동일 |
-| `reason` | 취소 사유 코드 | 필수 |
-| `cancelledAt` | 취소 시각 | 필수 |
-| `metadata` | 비민감 취소 부가 정보 JSON | nullable |
+## 8. 결제수단별 데이터 매핑
 
-MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.status = CANCELLED`와 취소 레코드 생성은 같은 트랜잭션에서 처리한다.
-
-## 9. 결제수단별 데이터 매핑
-
-### 9.1 온라인 카드
+### 8.1 온라인 카드
 
 | 요청/결과 | 저장 위치 | 보존 정책 |
 | --- | --- | --- |
@@ -138,7 +140,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 | 승인번호 | `approvalNumber` | PG가 제공할 때 저장 |
 | 승인 시각/금액 | `approvedAt`, `amount` | 저장 |
 
-### 9.2 오프라인 카드 / VAN
+### 8.2 오프라인 카드 / VAN
 
 제공된 VAN 응답 모델에서 다음 값만 승인 저장 대상으로 삼는다.
 
@@ -157,7 +159,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 
 `VANApproveResponse`는 현장 단말/연동 계층의 파싱 참조로만 사용한다. API·도메인 계층에는 이를 직접 노출하지 않고 `OfflineCardApprovalCommand`로 필요한 값만 변환한다.
 
-### 9.3 자체 포인트
+### 8.3 자체 포인트
 
 | 요청/결과 | 저장 위치 | 보존 정책 |
 | --- | --- | --- |
@@ -167,7 +169,7 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 | 차감 금액·승인 시각 | `amount`, `approvedAt` | 저장 |
 | 채널(`ONLINE`/`OFFLINE`) | `metadata.channel` | 저장 가능 |
 
-## 10. metadata 정책
+## 9. metadata 정책
 
 `metadata`는 JSON 문자열로 저장하며, 검색·정합성의 핵심이 아닌 비민감 부가 정보만 담는다.
 
@@ -184,9 +186,9 @@ MVP는 전액 취소만 허용한다. `Payment.status = CANCELLED` 및 `Order.st
 
 `metadata`에도 API 요청/응답 원문 전체, VAN 원본 전문·바이너리·서명 데이터, 카드번호·Track2·PIN·주민번호·카드 인증 원문, 온라인 PG 토큰, 포인트 바코드 원문을 넣지 않는다.
 
-## 11. 인덱스와 무결성
+## 10. 인덱스와 무결성
 
-- `Cart.idempotencyKey`, `Cart.orderId`, `Order.cartId`, `OrderLine.orderId`, `Payment.orderId`, `PaymentCancellation.paymentId`에 unique 또는 조회 인덱스를 둔다.
-- `Cart.idempotencyKey`, `Cart.orderId`, `Order.cartId`, `PaymentCancellation.paymentId`는 unique 제약을 둔다.
-- `Payment.providerTransactionId`는 결제수단 범위에서 유일해야 한다.
-- 금액과 수량은 애플리케이션 검증과 DB 제약을 함께 적용한다.
+- unique 제약: `orders.idempotency_key`, `(payments.method, payments.provider_transaction_id)`.
+- 조회 인덱스: `order_lines.order_id`, `payments.order_id`.
+- 금액과 수량은 애플리케이션 검증과 DB 제약(`CHECK`)을 함께 적용한다. 제약은 Flyway 마이그레이션 SQL에 정의한다.
+- "주문당 `APPROVED` 결제는 최대 하나"는 이 단계에서 애플리케이션 검사로만 보장한다. 동시 요청에서는 깨질 수 있다([PRD 10. 알려진 한계](prd.md#10-알려진-한계)).

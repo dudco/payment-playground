@@ -35,7 +35,9 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 현재 ADR:
 
 - [ADR-0001: 결제수단별 Gateway 분리](adr/0001-payment-gateway-by-method.md)
-- [ADR-0002: 멱등키 기반 Cart 초안에서만 주문 생성](adr/0002-cart-checkout-creates-order.md)
+- [ADR-0002: 멱등키 기반 Cart 초안에서만 주문 생성](adr/0002-cart-checkout-creates-order.md) (일부 대체됨)
+- [ADR-0003: Cart 초안을 Redis에 TTL과 함께 저장](adr/0003-cart-in-redis-with-ttl.md)
+- [ADR-0004: Flyway로 RDB 스키마 관리](adr/0004-flyway-schema-migration.md)
 
 ### `specs/`
 
