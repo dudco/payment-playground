@@ -39,7 +39,8 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 - [ADR-0003: Cart 초안을 Redis에 TTL과 함께 저장](adr/0003-cart-in-redis-with-ttl.md) (일부 대체됨)
 - [ADR-0004: Flyway로 RDB 스키마 관리](adr/0004-flyway-schema-migration.md)
 - [ADR-0005: 상품 API는 코드 내 Mock 카탈로그로 제공](adr/0005-product-api-mock-catalog.md)
-- [ADR-0006: 장바구니를 고객별로 하나 두고 Redis Hash에 저장](adr/0006-cart-per-customer.md)
+- [ADR-0006: 장바구니를 고객별로 하나 두고 전체 교체 방식으로 저장](adr/0006-cart-per-customer.md)
+- [ADR-0007: 장바구니에서 발급한 체크아웃 멱등키를 주문·결제까지 사용](adr/0007-checkout-idempotency-key.md)
 
 ### `specs/`
 

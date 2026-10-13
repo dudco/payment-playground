@@ -4,7 +4,7 @@
 
 ## 1. 목적
 
-이 문서는 상품·장바구니·주문·결제의 저장 모델과 데이터 보존 기준을 정의한다. 상품은 코드 내 Mock 카탈로그로만 존재하고([ADR-0005](adr/0005-product-api-mock-catalog.md)), 장바구니는 Redis([ADR-0003](adr/0003-cart-in-redis-with-ttl.md), [ADR-0006](adr/0006-cart-per-customer.md)), 주문·결제는 SQLite/JPA에 저장한다. RDB 스키마는 Flyway SQL 마이그레이션으로만 만들고 바꾼다([ADR-0004](adr/0004-flyway-schema-migration.md)). 이 문서의 필드·제약이 바뀌면 새 마이그레이션 버전 파일을 함께 추가한다.
+이 문서는 상품·장바구니·주문·결제의 저장 모델과 데이터 보존 기준을 정의한다. 상품은 코드 내 Mock 카탈로그로만 존재하고([ADR-0005](adr/0005-product-api-mock-catalog.md)), 장바구니는 Redis([ADR-0003](adr/0003-cart-in-redis-with-ttl.md), [ADR-0006](adr/0006-cart-per-customer.md), [ADR-0007](adr/0007-checkout-idempotency-key.md)), 주문·결제는 SQLite/JPA에 저장한다. RDB 스키마는 Flyway SQL 마이그레이션으로만 만들고 바꾼다([ADR-0004](adr/0004-flyway-schema-migration.md)). 이 문서의 필드·제약이 바뀌면 새 마이그레이션 버전 파일을 함께 추가한다.
 
 금액은 KRW 최소 단위인 정수로 저장한다. 통화 변환은 지원하지 않는다.
 
@@ -13,7 +13,8 @@
 ```text
 [코드]   Product (MockProductCatalog, 고정 목록)
             ┆ productId로 참조 (FK 없음)
-[Redis]  Cart (cart:{customerId}, Hash, TTL)
+[Redis]  Cart (cart:{customerId}, JSON, TTL)
+            ┆ idempotencyKey로 논리 연결 (FK 없음)
 
 [RDB]    Order 1 --- N OrderLine        ← 주문 스펙 작성 시 확정
          Order 1 --- N Payment          ← 결제 스펙 작성 시 확정
@@ -42,21 +43,28 @@ Future: Product 1 --- N Item
 ### 3.2 Cart (Redis)
 
 - 키: `cart:{customerId}`
-- 타입: Hash. 필드는 `productId`, 값은 수량(1–99, 10진수 문자열).
-- TTL: 설정값 `payment-playground.cart.ttl`(기본 7일). 쓰기마다 다시 설정한다.
+- 값: JSON 문자열 하나. `SET ... EX`로 한 번에 쓴다.
+- TTL: 설정값 `payment-playground.cart.ttl`(기본 30분). 저장할 때마다 다시 설정하고, 조회는 연장하지 않는다.
 - 상품이 하나도 없으면 키가 없다.
 
-상품명·판매가·합계는 저장하지 않는다. 응답할 때 카탈로그로 계산한다. `expiresAt`도 저장하지 않고 Redis TTL로 계산한다.
+| 필드 | 설명 | 제약 |
+| --- | --- | --- |
+| `customerId` | 고객 식별자 | 필수, 키 이름과 동일 |
+| `idempotencyKey` | 체크아웃 멱등키(UUID) | 필수, 장바구니가 처음 저장될 때 발급, 이후 변경 불가 |
+| `items` | `{ productId, quantity }` 배열 | 비어 있지 않음, `productId` 중복 없음, 수량 1–99 |
+| `createdAt` | 첫 저장 시각 | 필수 |
+| `updatedAt` | 마지막 저장 시각 | 필수 |
 
-장바구니에는 고객 ID, 상품 ID, 수량만 저장한다. 결제 정보는 어떤 형태로도 저장하지 않는다.
+상품명·판매가·합계는 저장하지 않는다. 응답할 때 카탈로그로 계산한다. `expiresAt`도 저장하지 않고 Redis TTL로 계산한다. 결제 정보는 어떤 형태로도 저장하지 않는다.
 
 Cart 생명주기:
 
-1. 첫 `POST /cart/items`에서 키가 생긴다.
-2. 담기·수량 변경·빼기마다 Hash가 다시 쓰이고 TTL이 다시 설정된다.
-3. 마지막 상품을 빼거나 `DELETE /cart`를 호출하면 키가 삭제된다. 그렇지 않아도 TTL이 지나면 사라진다.
+1. 상품이 있는 첫 `POST /cart`에서 키가 생기고 멱등키가 발급된다.
+2. 이후 `POST /cart`마다 `items`·`updatedAt`이 교체되고 TTL이 다시 설정된다. 멱등키와 `createdAt`은 유지된다.
+3. 빈 목록 저장이나 TTL 만료로 키가 사라지면 멱등키도 사라진다.
+4. 주문 생성 후의 처리는 주문 스펙에서 정한다([ADR-0007](adr/0007-checkout-idempotency-key.md)).
 
-> 아래 4장 이후의 주문·결제 모델은 이전 설계에서 남긴 초안이다. 주문·결제 스펙을 작성할 때 장바구니 변경([ADR-0006](adr/0006-cart-per-customer.md))에 맞춰 다시 확정한다. 특히 `orders.idempotency_key`의 출처와 장바구니 삭제 시점은 아직 결정되지 않았다.
+> 아래 4장 이후의 주문·결제 모델은 이전 설계에서 남긴 초안이다. 주문·결제 스펙을 작성할 때 장바구니 변경([ADR-0006](adr/0006-cart-per-customer.md))에 맞춰 다시 확정한다. `orders.idempotency_key`는 장바구니에서 발급한 체크아웃 멱등키를 그대로 쓴다([ADR-0007](adr/0007-checkout-idempotency-key.md)). 장바구니 삭제 시점과 결제의 멱등키 사용 방식은 각 스펙에서 확정한다.
 
 ## 4. Order (`orders`)
 

@@ -1,6 +1,6 @@
 # ADR-0002: 멱등키 기반 Cart 초안에서만 주문 생성
 
-- 상태: 대체됨 ([ADR-0003](0003-cart-in-redis-with-ttl.md): Cart 저장소와 `ORDER_CREATED` 상태, [ADR-0006](0006-cart-per-customer.md): 고객별 장바구니)
+- 상태: 대체됨 ([ADR-0003](0003-cart-in-redis-with-ttl.md): Cart 저장소와 `ORDER_CREATED` 상태, [ADR-0006](0006-cart-per-customer.md): 고객별 장바구니, [ADR-0007](0007-checkout-idempotency-key.md): 멱등키 사용 범위)
 - 일자: 2026-09-13
 
 ## 맥락

@@ -7,7 +7,7 @@
 트래픽이 거의 없는 환경에서 올바르게 동작하는 최소 API가 목표다. 속도·트래픽 대응 장치는 아직 넣지 않는다. 이 단계가 의도적으로 막지 않는 문제는 [PRD의 알려진 한계](docs/prd.md#8-알려진-한계)에 기록한다.
 
 - `GET /products`, `GET /products/{productId}`: 코드에 고정된 Mock 상품 조회
-- `GET /cart`, `POST /cart/items`, `PATCH|DELETE /cart/items/{productId}`, `DELETE /cart`: 고객별 장바구니 (`X-Customer-Id` 헤더, Redis Hash + TTL)
+- `GET /cart`, `POST /cart`: 고객별 장바구니. 변경은 항상 전체 교체이고, 첫 저장 때 주문·결제까지 이어지는 체크아웃 멱등키를 발급한다 (`X-Customer-ID` 헤더, Redis + TTL 30분)
 - 주문·결제는 다음 스펙에서 추가한다.
 
 ## 기술 스택
