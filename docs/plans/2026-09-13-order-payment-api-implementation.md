@@ -35,9 +35,9 @@
 - Create: `src/test/kotlin/io/github/dudco/paymentplayground/support/ApiExceptionHandlerTest.kt`
 - Modify: `src/test/kotlin/io/github/dudco/paymentplayground/PaymentPlaygroundApplicationTests.kt`
 
-1. `build.gradle.kts`에 `spring-boot-starter-flyway`를 추가한다. Spring Boot 4부터 Flyway 자동 설정은 `spring-boot-flyway` 모듈로 분리되어 `flyway-core`만으로는 동작하지 않는다. SQLite 지원은 `flyway-core`에 포함되어 별도 `flyway-database-*` 모듈이 필요 없다. `./gradlew dependencies --configuration runtimeClasspath | grep flyway`로 `flyway-core`가 함께 들어오는지 확인한다.
+1. `build.gradle.kts`에 `spring-boot-starter-flyway`를 추가한다. 다른 스타터와 같은 방식으로 테스트용 `spring-boot-starter-flyway-test`도 함께 넣는다. Spring Boot 4부터 Flyway 자동 설정은 `spring-boot-flyway` 모듈로 분리되어 `flyway-core`만으로는 동작하지 않는다. SQLite 지원은 `flyway-core`에 포함되어 별도 `flyway-database-*` 모듈이 필요 없다. `./gradlew dependencies --configuration runtimeClasspath | grep flyway`로 `flyway-core`가 함께 들어오는지 확인한다.
 2. 테스트 DB는 `jdbc:sqlite:./build/test-db/payment-playground.db` 파일로 두고 `ddl-auto=validate`, `spring.flyway.enabled=true`를 쓴다. SQLite 인메모리 DB는 커넥션마다 다른 DB가 되므로 쓰지 않는다. 테스트 간 격리는 `DatabaseCleaner`가 `@BeforeEach`에서 Flyway 이력 테이블을 제외한 테이블을 비우는 방식으로 한다.
-3. 테스트용 Controller로 `NotFound`/`Conflict`/`Unprocessable` 도메인 예외와 Bean Validation 실패가 각각 `404`/`409`/`422`/`400 VALIDATION_ERROR`와 `code`/`message` JSON으로 변환되는지 RED 테스트를 작성한다.
+3. 테스트용 Controller로 `NotFound`/`Conflict`/`Unprocessable` 도메인 예외가 각각 `404`/`409`/`422`로, Bean Validation 실패·읽을 수 없는 본문·필수 헤더 누락이 `400 VALIDATION_ERROR`로, 모두 `code`/`message` JSON으로 변환되는지 RED 테스트를 작성한다. 검증 실패 응답에 거부된 값이 실리지 않는지도 확인한다.
 4. 실행: `./gradlew test --tests '*ApiExceptionHandlerTest'`
 5. 도메인 예외 계층과 `@RestControllerAdvice`, 고정 가능한 `Clock` 빈을 최소 구현한다.
 6. 같은 명령으로 GREEN을 확인하고 `./gradlew test`로 context 로딩과 Flyway 실행(마이그레이션 0건)을 확인한다.

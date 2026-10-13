@@ -23,6 +23,7 @@ repositories {
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
+	implementation("org.springframework.boot:spring-boot-starter-flyway")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -31,6 +32,7 @@ dependencies {
 	runtimeOnly("org.xerial:sqlite-jdbc")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-redis-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
@@ -51,4 +53,13 @@ allOpen {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+
+	// 테스트 DB 파일은 실행할 때마다 새로 만든다. 그래야 매번 모든 마이그레이션이 빈 DB에서 처음부터 실행된다.
+	val testDbDir = layout.buildDirectory.dir("test-db")
+	doFirst {
+		testDbDir.get().asFile.apply {
+			deleteRecursively()
+			mkdirs()
+		}
+	}
 }
