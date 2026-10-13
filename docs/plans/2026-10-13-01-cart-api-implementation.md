@@ -12,9 +12,9 @@
 
 ## 진행 상황 (2026-10-14)
 
-- Task 1–8: 완료. 로컬 `./gradlew test` 전체 통과(44 tests, 0 failures). 구현 전 실패 확인(RED) 단계는 당시 빌드 환경이 없어 건너뛰었다.
-- 최종 브랜치 리뷰: "With fixes" — 스펙 보완(`1d740e8`) 반영, 테스트 통과로 조건 충족.
-- Task 9: Step 1·3 완료. Step 2(`bootRun` 후 `redis-cli`로 실제 저장·TTL 확인)만 남음.
+- Task 1–9 완료. 로컬 `./gradlew test` 전체 통과(44 tests, 0 failures), `bootRun` + `redis-cli` 수동 확인 완료.
+- 구현 전 실패 확인(RED) 단계 8개는 당시 빌드 환경이 없어 건너뛰었다.
+- 최종 브랜치 리뷰: "With fixes" → 스펙 보완(`1d740e8`)과 테스트 통과로 조건 충족.
 
 ---
 
@@ -765,7 +765,7 @@ git commit -m "feat: 장바구니 GET/POST API 추가"
 Redis 서버가 꺼진 상태에서 Run: `./gradlew test`
 Expected: `BUILD SUCCESSFUL`, 실패 0
 
-- [ ] **Step 2: 애플리케이션을 띄워 실제 Redis 저장을 수동 확인** — 미실행: `bootRun` + `redis-cli` 수동 확인 남음
+- [x] **Step 2: 애플리케이션을 띄워 실제 Redis 저장을 수동 확인** — 확인 완료(2026-10-14): POST·GET 멱등키 동일, totalAmount 9000, Redis 값에 상품명·가격 없음, TTL 1780(조회 후에도 연장 안 됨)
 
 ```bash
 redis-server --daemonize yes   # 또는 docker run -d -p 6379:6379 redis:7
