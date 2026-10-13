@@ -37,7 +37,7 @@ Future: Product 1 --- N Item
 | `name` | 판매명 | 필수 |
 | `price` | 판매가(KRW) | 0 이상 |
 
-저장소가 없다. 목록은 [상품 조회 API 명세](specs/2026-10-13-product-api.md#3-mock-상품-목록)를 따른다.
+저장소가 없다. 목록은 [상품 조회 API 명세](specs/product-api.md#3-mock-상품-목록)를 따른다.
 
 ### 3.2 Cart (Redis)
 

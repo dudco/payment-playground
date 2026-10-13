@@ -27,8 +27,8 @@
 
 | 순서 | 기능 | 상태 | 문서 |
 | --- | --- | --- | --- |
-| 1 | 상품 조회 (Mock) | 현재 단계 | [상품 조회 API 명세](specs/2026-10-13-product-api.md), [ADR-0005](adr/0005-product-api-mock-catalog.md) |
-| 1 | 장바구니 | 현재 단계 | [장바구니 API 명세](specs/2026-10-13-cart-api.md), [ADR-0006](adr/0006-cart-per-customer.md) |
+| 1 | 상품 조회 (Mock) | 현재 단계 | [상품 조회 API 명세](specs/product-api.md), [ADR-0005](adr/0005-product-api-mock-catalog.md) |
+| 1 | 장바구니 | 현재 단계 | [장바구니 API 명세](specs/cart-api.md), [ADR-0006](adr/0006-cart-per-customer.md) |
 | 2 | 주문 생성 | 예정 | 장바구니에서 주문을 만드는 규칙, 가격 스냅샷, 주문 멱등키를 스펙에서 정한다. |
 | 3 | 결제 | 예정 | 온라인 카드·오프라인 카드·자체 포인트를 결제수단별 Gateway로 처리한다([ADR-0001](adr/0001-payment-gateway-by-method.md)). |
 
@@ -86,6 +86,6 @@
 ## 9. 수용 조건
 
 - 상품 목록과 단건을 조회할 수 있고, 없는 상품은 `404 PRODUCT_NOT_FOUND`다.
-- 장바구니 담기·수량 변경·빼기·조회·비우기가 [장바구니 API 명세](specs/2026-10-13-cart-api.md#7-테스트-수용-조건)의 수용 조건을 자동 테스트로 만족한다.
+- 장바구니 담기·수량 변경·빼기·조회·비우기가 [장바구니 API 명세](specs/cart-api.md#7-테스트-수용-조건)의 수용 조건을 자동 테스트로 만족한다.
 - 장바구니 금액은 서버 카탈로그 가격으로만 계산된다.
 - 장바구니 Redis 키에 설정값 TTL이 걸린다.
