@@ -1,6 +1,6 @@
 # ADR-0003: Cart 초안을 Redis에 TTL과 함께 저장
 
-- 상태: 승인됨
+- 상태: 일부 대체됨 ([ADR-0006](0006-cart-per-customer.md): 키·값 형식과 주문 여부 판단 규칙)
 - 일자: 2026-10-09
 - 관계: [ADR-0002](0002-cart-checkout-creates-order.md)의 Cart 저장소·`ORDER_CREATED` 상태 결정을 대체한다. "멱등키 기반 Cart에서만 주문을 생성한다"는 결정은 유지한다.
 

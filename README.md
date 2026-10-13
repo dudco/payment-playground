@@ -1,23 +1,21 @@
 # Payment Playground
 
-멱등키 기반 주문 초안과 Fake Gateway 결제 흐름에서 시작해, 실제로 재현한 문제를 하나씩 해결하는 Spring Boot 실험 프로젝트입니다.
+상품·장바구니·주문·결제의 최소 API에서 시작해, 대용량 트래픽에서 생기는 문제를 실제로 재현하고 하나씩 해결하는 Spring Boot 실험 프로젝트입니다.
 
-## MVP 초안 범위
+## 현재 범위
 
-트래픽이 거의 없는 환경에서 올바르게 동작하는 기본 API가 목표다. 이 단계가 의도적으로 막지 않는 문제는 [PRD의 알려진 한계](docs/prd.md#10-알려진-한계)에 기록한다.
+트래픽이 거의 없는 환경에서 올바르게 동작하는 최소 API가 목표다. 속도·트래픽 대응 장치는 아직 넣지 않는다. 이 단계가 의도적으로 막지 않는 문제는 [PRD의 알려진 한계](docs/prd.md#8-알려진-한계)에 기록한다.
 
-- `POST /order/cart`로 멱등키 기반 주문 초안(Redis, TTL) 생성·갱신
-- `POST /order`로 Cart 초안을 불변 주문으로 전환
-- `POST /payments`에서 `method`로 온라인 카드·오프라인 카드·자체 포인트 결제 생성
-- 인프로세스 Fake Gateway 승인 뒤 주문·결제 상태 전이
-- UI와 실제 PG/VAN 네트워크 없이 REST API와 자동 테스트만 제공
+- `GET /products`, `GET /products/{productId}`: 코드에 고정된 Mock 상품 조회
+- `GET /cart`, `POST /cart/items`, `PATCH|DELETE /cart/items/{productId}`, `DELETE /cart`: 고객별 장바구니 (`X-Customer-Id` 헤더, Redis Hash + TTL)
+- 주문·결제는 다음 스펙에서 추가한다.
 
 ## 기술 스택
 
 - Kotlin, Spring Boot, Java 21
 - SQLite: 주문·결제 데이터를 로컬 파일로 저장
 - Flyway: SQLite 스키마 마이그레이션 (`src/main/resources/db/migration`)
-- Redis: Cart 초안을 TTL과 함께 저장
+- Redis: 고객별 장바구니를 TTL과 함께 저장
 - Gradle Wrapper
 
 ## 실행

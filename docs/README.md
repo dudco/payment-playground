@@ -35,9 +35,11 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 현재 ADR:
 
 - [ADR-0001: 결제수단별 Gateway 분리](adr/0001-payment-gateway-by-method.md)
-- [ADR-0002: 멱등키 기반 Cart 초안에서만 주문 생성](adr/0002-cart-checkout-creates-order.md) (일부 대체됨)
-- [ADR-0003: Cart 초안을 Redis에 TTL과 함께 저장](adr/0003-cart-in-redis-with-ttl.md)
+- [ADR-0002: 멱등키 기반 Cart 초안에서만 주문 생성](adr/0002-cart-checkout-creates-order.md) (대체됨)
+- [ADR-0003: Cart 초안을 Redis에 TTL과 함께 저장](adr/0003-cart-in-redis-with-ttl.md) (일부 대체됨)
 - [ADR-0004: Flyway로 RDB 스키마 관리](adr/0004-flyway-schema-migration.md)
+- [ADR-0005: 상품 API는 코드 내 Mock 카탈로그로 제공](adr/0005-product-api-mock-catalog.md)
+- [ADR-0006: 장바구니를 고객별로 하나 두고 Redis Hash에 저장](adr/0006-cart-per-customer.md)
 
 ### `specs/`
 
@@ -48,7 +50,10 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 - 예: 분할 결제를 시작하면 `specs/split-payment.md`를 새로 작성한다.
 - 기존 기능의 전체 흐름이 바뀌면 `prd.md`, `data-model.md`도 필요한 범위에서 함께 갱신하고 새 스펙 문서로 링크한다.
 
-현재 스펙: [주문·결제 API 초안 명세](specs/order-payment-api.md)
+현재 스펙:
+
+- [상품 조회 API 명세](specs/product-api.md)
+- [장바구니 API 명세](specs/cart-api.md)
 
 ### `plans/`
 
@@ -58,7 +63,7 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 - TDD 순서(RED → GREEN → REFACTOR), 정확한 대상 파일, 테스트 명령, 검증 기준을 기록한다.
 - 계획은 구현 작업 단위이며, 기능 요구사항의 기준 문서는 `prd.md`와 `specs/`다.
 
-현재 계획: [주문·결제 API 초안 구현 계획](plans/2026-09-13-order-payment-api-implementation.md)
+현재 계획: [상품·장바구니 API 구현 계획](plans/2026-10-13-cart-api-implementation.md)
 
 ## 새 기능을 추가하는 순서
 
