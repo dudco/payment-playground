@@ -10,6 +10,14 @@
 
 **Spec:** [장바구니 API 명세](../specs/cart-api.md), [상품 조회 API 명세](../specs/product-api.md). 결정 배경은 [ADR-0005](../adr/0005-product-api-mock-catalog.md), [ADR-0006](../adr/0006-cart-per-customer.md), [ADR-0007](../adr/0007-checkout-idempotency-key.md).
 
+## 진행 상황 (2026-10-14)
+
+- Task 1–8: 테스트·구현 작성과 커밋 완료, Task별 리뷰 통과. 테스트 실행 단계(⏸)는 이 세션에서 빌드할 수 없어 실행하지 못했다.
+- 최종 브랜치 리뷰: "With fixes" — 스펙 보완(`1d740e8`)은 반영 완료, 남은 조건은 로컬 `./gradlew test` 통과.
+- Task 9(전체 검증): 미착수. 로컬에서 실행 필요.
+
+---
+
 ## Global Constraints
 
 - 루트 패키지 `io.github.dudco.paymentplayground`. 새 의존성을 추가하지 않는다.
@@ -58,7 +66,7 @@
 **Interfaces:**
 - Produces: `class InvalidRequestException(message: String) : DomainException(ApiExceptionHandler.VALIDATION_ERROR, message)` → `400`. Task 3, 7이 사용한다.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `ProbeController`에 `@GetMapping("/invalid") fun invalid(): String = throw InvalidRequestException("요청이 올바르지 않습니다.")`를 추가하고 테스트를 추가한다.
 
@@ -72,19 +80,19 @@ fun `InvalidRequestException은 400 VALIDATION_ERROR가 된다`() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.support.ApiExceptionHandlerTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'InvalidRequestException'`)
 
-- [ ] **Step 3: Implement `InvalidRequestException` and map it to `HttpStatus.BAD_REQUEST` in `handleDomain`**
+- [x] **Step 3: Implement `InvalidRequestException` and map it to `HttpStatus.BAD_REQUEST` in `handleDomain`**
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.support.ApiExceptionHandlerTest'`
 Expected: PASS (기존 6개 + 신규 1개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `d0bd821`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/support src/test/kotlin/io/github/dudco/paymentplayground/support
@@ -109,7 +117,7 @@ git commit -m "feat: 400 VALIDATION_ERROR 도메인 예외 추가"
 - Produces: `@Component class MockProductCatalog : ProductCatalog` — Global Constraints의 5개 상품을 그 순서로 가진다.
 - Produces: `data class ProductResponse(val productId: String, val name: String, val price: Long)`, `GET /products`, `GET /products/{productId}`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 @WebMvcTest(controllers = [ProductController::class])
@@ -147,21 +155,21 @@ class ProductControllerTest(@Autowired private val mockMvc: MockMvc) {
 
 (`contains`는 `org.hamcrest.Matchers.contains`)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.product.ProductControllerTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'ProductController'`)
 
-- [ ] **Step 3: Implement `Product.kt`, `MockProductCatalog`, `ProductController` per Interfaces**
+- [x] **Step 3: Implement `Product.kt`, `MockProductCatalog`, `ProductController` per Interfaces**
 
 `MockProductCatalog`는 목록을 `List<Product>`로, 단건 조회는 `associateBy { it.id }` 맵으로 한다.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.product.ProductControllerTest'`
 Expected: PASS (3개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `54a81a7`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/product src/test/kotlin/io/github/dudco/paymentplayground/product
@@ -186,7 +194,7 @@ git commit -m "feat: Mock 상품 카탈로그와 조회 API 추가"
   - `@Configuration class CustomerWebConfig(private val resolver: HeaderCurrentCustomerResolver) : WebMvcConfigurer` — `addArgumentResolvers`에서 등록
   - Task 8의 `CartController`가 `@CurrentCustomer customerId: String`으로 사용한다. 인증 도입 시 이 패키지의 resolver만 교체한다.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 @WebMvcTest(controllers = [HeaderCurrentCustomerResolverTest.ProbeController::class])
@@ -224,19 +232,19 @@ class HeaderCurrentCustomerResolverTest(@Autowired private val mockMvc: MockMvc)
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.customer.HeaderCurrentCustomerResolverTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CurrentCustomer'`)
 
-- [ ] **Step 3: Implement `CurrentCustomer`, `HeaderCurrentCustomerResolver`, `CustomerWebConfig` per Interfaces**
+- [x] **Step 3: Implement `CurrentCustomer`, `HeaderCurrentCustomerResolver`, `CustomerWebConfig` per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.customer.HeaderCurrentCustomerResolverTest'`
 Expected: PASS (3개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `a02b38f`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/customer src/test/kotlin/io/github/dudco/paymentplayground/customer
@@ -261,7 +269,7 @@ git commit -m "feat: X-Customer-ID 기반 현재 고객 resolver 추가"
   - `data class StoredCart(val cart: Cart, val expiresAt: Instant?)`
   - `interface CartRepository { fun find(customerId: String): StoredCart?; fun save(cart: Cart): Instant; fun delete(customerId: String) }` — `save`는 새 만료 시각을 반환한다. Task 6이 구현, Task 7이 사용.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 class CartTest {
@@ -300,19 +308,19 @@ class CartTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'Cart'`)
 
-- [ ] **Step 3: Implement `Cart.kt` and `CartRepository.kt` per Interfaces**
+- [x] **Step 3: Implement `Cart.kt` and `CartRepository.kt` per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartTest'`
 Expected: PASS (3개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `f68b560`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/cart src/test/kotlin/io/github/dudco/paymentplayground/cart
@@ -331,7 +339,7 @@ git commit -m "feat: Cart 도메인과 저장소 인터페이스 추가"
 - Consumes: `Cart` (Task 4)
 - Produces: `@Component class CartRedisCodec(private val jsonMapper: JsonMapper) { fun encode(cart: Cart): String; fun decode(json: String): Cart }` — `JsonMapper`는 `tools.jackson.databind.json.JsonMapper`(Spring Boot가 빈으로 제공). 저장 형식은 스펙 3장의 JSON(`lines`는 `{productId, quantity}` 배열)이며, 이를 위해 이 파일 안에 `private` 문서 클래스(`CartDocument`, `CartLineDocument`)를 두고 `Cart`와 변환한다. Task 6이 사용한다.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 class CartRedisCodecTest {
@@ -358,19 +366,19 @@ class CartRedisCodecTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartRedisCodecTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CartRedisCodec'`)
 
-- [ ] **Step 3: Implement `CartRedisCodec` per Interfaces**
+- [x] **Step 3: Implement `CartRedisCodec` per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartRedisCodecTest'`
 Expected: PASS (2개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `a065daf`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/cart/CartRedisCodec.kt src/test/kotlin/io/github/dudco/paymentplayground/cart/CartRedisCodecTest.kt
@@ -399,7 +407,7 @@ git commit -m "feat: 장바구니 Redis JSON 코덱 추가"
     - `companion object { fun key(customerId: String): String = "cart:$customerId"; fun expiresAt(ttlSeconds: Long?, now: Instant): Instant? }` — 양수면 `now + ttlSeconds초`, `null`·`0`·`-1`(TTL 없음)·`-2`(키 없음)이면 `null`
     - `now`는 `clock.instant()`를 초 단위로 자른 값(Redis TTL이 초 단위)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 class RedisCartRepositoryTest {
@@ -461,19 +469,19 @@ class RedisCartRepositoryTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.RedisCartRepositoryTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'RedisCartRepository'`)
 
-- [ ] **Step 3: Implement `CartProperties`, `RedisCartRepository`; add `@ConfigurationPropertiesScan` and `payment-playground.cart.ttl=30m` to both properties files**
+- [x] **Step 3: Implement `CartProperties`, `RedisCartRepository`; add `@ConfigurationPropertiesScan` and `payment-playground.cart.ttl=30m` to both properties files**
 
-- [ ] **Step 4: Run tests to verify they pass, including the existing context test without Redis**
+- [ ] **Step 4: Run tests to verify they pass, including the existing context test without Redis** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.RedisCartRepositoryTest' --tests 'io.github.dudco.paymentplayground.PaymentPlaygroundApplicationTests'`
 Expected: PASS (Redis 서버를 띄우지 않은 상태에서)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `ac33a66`
 
 ```bash
 git add src/main src/test/kotlin/io/github/dudco/paymentplayground/cart/RedisCartRepositoryTest.kt src/test/resources/application.properties
@@ -507,7 +515,7 @@ git commit -m "feat: Redis 장바구니 저장소와 TTL 설정 추가"
   - `class InMemoryCartRepository(private val clock: Clock) : CartRepository` — 메모리 맵. `save`는 `clock.instant() + 30분`을 반환하고 `find`에 같은 값을 돌려준다. 추가로 `fun contains(customerId: String): Boolean`, `fun clear()`
   - `@Component`를 붙이지 않는다(`@SpringBootTest` 스캔에서 `RedisCartRepository`와 충돌 방지)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 class CartServiceTest {
@@ -603,19 +611,19 @@ class CartServiceTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartServiceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CartService'`)
 
-- [ ] **Step 3: Implement `IdempotencyKeyGenerator.kt`, `CartService.kt`, and the test fixtures per Interfaces**
+- [x] **Step 3: Implement `IdempotencyKeyGenerator.kt`, `CartService.kt`, and the test fixtures per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartServiceTest'`
 Expected: PASS (8개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `9ad9ca8`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/cart src/test/kotlin/io/github/dudco/paymentplayground/cart
@@ -640,7 +648,7 @@ git commit -m "feat: 장바구니 저장·조회 서비스와 멱등키 발급 �
   - `data class SaveCartLineRequest(@field:NotBlank val productId: String, @field:Min(1) @field:Max(99) val quantity: Int)`
   - `lines` 누락·`null`·`null` 원소는 Jackson Kotlin 모듈이 역직렬화 단계에서 거절하고, 기존 `HttpMessageNotReadableException` 처리로 `400 VALIDATION_ERROR`가 된다.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 @WebMvcTest(controllers = [CartController::class])
@@ -725,21 +733,21 @@ class CartControllerTest(
 - `수량 경계값 1과 99는 허용된다` (Review Focus 3): `cake` 1, `latte` 99로 POST → `200`, `$.lines[0].quantity` 1, `$.lines[1].quantity` 99.
 - `다른 고객의 장바구니와 멱등키에 영향을 주지 않는다`: `customer-001`과 `customer-002`가 각각 POST → 두 키가 다르고, `customer-001`이 `{"lines":[]}`로 비운 뒤에도 `customer-002`의 GET은 키와 라인이 그대로다.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartControllerTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CartController'`)
 
-- [ ] **Step 3: Implement `CartController`, `SaveCartRequest`, `SaveCartLineRequest` per Interfaces**
+- [x] **Step 3: Implement `CartController`, `SaveCartRequest`, `SaveCartLineRequest` per Interfaces**
 
 `save`는 `request.lines.map { CartLineCommand(it.productId, it.quantity) }`를 `cartService.save`에 넘긴다.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartControllerTest'`
 Expected: PASS (9개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `1c8b796`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/cart/CartController.kt src/test/kotlin/io/github/dudco/paymentplayground/cart/CartControllerTest.kt
