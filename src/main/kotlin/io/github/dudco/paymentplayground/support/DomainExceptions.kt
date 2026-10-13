@@ -11,6 +11,9 @@ sealed class DomainException(
 	override val message: String,
 ) : RuntimeException(message)
 
+/** 요청 자체가 올바르지 않다. `400`과 `VALIDATION_ERROR`로 응답한다. */
+class InvalidRequestException(message: String) : DomainException(ApiExceptionHandler.VALIDATION_ERROR, message)
+
 /** 대상이 없다. `404`로 응답한다. */
 class NotFoundException(code: String, message: String) : DomainException(code, message)
 
