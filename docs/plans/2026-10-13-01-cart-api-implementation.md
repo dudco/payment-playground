@@ -12,9 +12,9 @@
 
 ## 진행 상황 (2026-10-14)
 
-- Task 1–8: 테스트·구현 작성과 커밋 완료, Task별 리뷰 통과. 테스트 실행 단계(⏸)는 이 세션에서 빌드할 수 없어 실행하지 못했다.
-- 최종 브랜치 리뷰: "With fixes" — 스펙 보완(`1d740e8`)은 반영 완료, 남은 조건은 로컬 `./gradlew test` 통과.
-- Task 9(전체 검증): 미착수. 로컬에서 실행 필요.
+- Task 1–8: 완료. 로컬 `./gradlew test` 전체 통과(44 tests, 0 failures). 구현 전 실패 확인(RED) 단계는 당시 빌드 환경이 없어 건너뛰었다.
+- 최종 브랜치 리뷰: "With fixes" — 스펙 보완(`1d740e8`) 반영, 테스트 통과로 조건 충족.
+- Task 9: Step 1·3 완료. Step 2(`bootRun` 후 `redis-cli`로 실제 저장·TTL 확인)만 남음.
 
 ---
 
@@ -80,14 +80,14 @@ fun `InvalidRequestException은 400 VALIDATION_ERROR가 된다`() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [ ] **Step 2: Run test to verify it fails** — 건너뜀: 구현 전 시점에는 빌드 환경이 없어 RED를 관찰하지 못함
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.support.ApiExceptionHandlerTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'InvalidRequestException'`)
 
 - [x] **Step 3: Implement `InvalidRequestException` and map it to `HttpStatus.BAD_REQUEST` in `handleDomain`**
 
-- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [x] **Step 4: Run test to verify it passes** — 로컬 `./gradlew test` 통과 — 7/7 (2026-10-14)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.support.ApiExceptionHandlerTest'`
 Expected: PASS (기존 6개 + 신규 1개)
@@ -155,7 +155,7 @@ class ProductControllerTest(@Autowired private val mockMvc: MockMvc) {
 
 (`contains`는 `org.hamcrest.Matchers.contains`)
 
-- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [ ] **Step 2: Run test to verify it fails** — 건너뜀: 구현 전 시점에는 빌드 환경이 없어 RED를 관찰하지 못함
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.product.ProductControllerTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'ProductController'`)
@@ -164,7 +164,7 @@ Expected: FAIL (컴파일 오류 `Unresolved reference 'ProductController'`)
 
 `MockProductCatalog`는 목록을 `List<Product>`로, 단건 조회는 `associateBy { it.id }` 맵으로 한다.
 
-- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [x] **Step 4: Run test to verify it passes** — 로컬 `./gradlew test` 통과 — 3/3 (2026-10-14)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.product.ProductControllerTest'`
 Expected: PASS (3개)
@@ -232,14 +232,14 @@ class HeaderCurrentCustomerResolverTest(@Autowired private val mockMvc: MockMvc)
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [ ] **Step 2: Run test to verify it fails** — 건너뜀: 구현 전 시점에는 빌드 환경이 없어 RED를 관찰하지 못함
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.customer.HeaderCurrentCustomerResolverTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CurrentCustomer'`)
 
 - [x] **Step 3: Implement `CurrentCustomer`, `HeaderCurrentCustomerResolver`, `CustomerWebConfig` per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [x] **Step 4: Run test to verify it passes** — 로컬 `./gradlew test` 통과 — 3/3 (2026-10-14)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.customer.HeaderCurrentCustomerResolverTest'`
 Expected: PASS (3개)
@@ -308,14 +308,14 @@ class CartTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [ ] **Step 2: Run test to verify it fails** — 건너뜀: 구현 전 시점에는 빌드 환경이 없어 RED를 관찰하지 못함
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'Cart'`)
 
 - [x] **Step 3: Implement `Cart.kt` and `CartRepository.kt` per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [x] **Step 4: Run test to verify it passes** — 로컬 `./gradlew test` 통과 — 3/3 (2026-10-14)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartTest'`
 Expected: PASS (3개)
@@ -366,14 +366,14 @@ class CartRedisCodecTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [ ] **Step 2: Run test to verify it fails** — 건너뜀: 구현 전 시점에는 빌드 환경이 없어 RED를 관찰하지 못함
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartRedisCodecTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CartRedisCodec'`)
 
 - [x] **Step 3: Implement `CartRedisCodec` per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [x] **Step 4: Run test to verify it passes** — 로컬 `./gradlew test` 통과 — 2/2 (2026-10-14)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartRedisCodecTest'`
 Expected: PASS (2개)
@@ -469,14 +469,14 @@ class RedisCartRepositoryTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [ ] **Step 2: Run test to verify it fails** — 건너뜀: 구현 전 시점에는 빌드 환경이 없어 RED를 관찰하지 못함
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.RedisCartRepositoryTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'RedisCartRepository'`)
 
 - [x] **Step 3: Implement `CartProperties`, `RedisCartRepository`; add `@ConfigurationPropertiesScan` and `payment-playground.cart.ttl=30m` to both properties files**
 
-- [ ] **Step 4: Run tests to verify they pass, including the existing context test without Redis** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [x] **Step 4: Run tests to verify they pass, including the existing context test without Redis** — 로컬 `./gradlew test` 통과 — RedisCartRepositoryTest 5/5, PaymentPlaygroundApplicationTests 4/4 (2026-10-14)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.RedisCartRepositoryTest' --tests 'io.github.dudco.paymentplayground.PaymentPlaygroundApplicationTests'`
 Expected: PASS (Redis 서버를 띄우지 않은 상태에서)
@@ -611,14 +611,14 @@ class CartServiceTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [ ] **Step 2: Run test to verify it fails** — 건너뜀: 구현 전 시점에는 빌드 환경이 없어 RED를 관찰하지 못함
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartServiceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CartService'`)
 
 - [x] **Step 3: Implement `IdempotencyKeyGenerator.kt`, `CartService.kt`, and the test fixtures per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [x] **Step 4: Run test to verify it passes** — 로컬 `./gradlew test` 통과 — 8/8 (2026-10-14)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartServiceTest'`
 Expected: PASS (8개)
@@ -733,7 +733,7 @@ class CartControllerTest(
 - `수량 경계값 1과 99는 허용된다` (Review Focus 3): `cake` 1, `latte` 99로 POST → `200`, `$.lines[0].quantity` 1, `$.lines[1].quantity` 99.
 - `다른 고객의 장바구니와 멱등키에 영향을 주지 않는다`: `customer-001`과 `customer-002`가 각각 POST → 두 키가 다르고, `customer-001`이 `{"lines":[]}`로 비운 뒤에도 `customer-002`의 GET은 키와 라인이 그대로다.
 
-- [ ] **Step 2: Run test to verify it fails** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [ ] **Step 2: Run test to verify it fails** — 건너뜀: 구현 전 시점에는 빌드 환경이 없어 RED를 관찰하지 못함
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartControllerTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CartController'`)
@@ -742,7 +742,7 @@ Expected: FAIL (컴파일 오류 `Unresolved reference 'CartController'`)
 
 `save`는 `request.lines.map { CartLineCommand(it.productId, it.quantity) }`를 `cartService.save`에 넘긴다.
 
-- [ ] **Step 4: Run test to verify it passes** — ⏸ 미실행: 이 세션에서는 빌드할 수 없음(Java 11, Maven/Gradle 접근 불가). 로컬에서 실행 필요
+- [x] **Step 4: Run test to verify it passes** — 로컬 `./gradlew test` 통과 — 9/9 (2026-10-14)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartControllerTest'`
 Expected: PASS (9개)
@@ -760,12 +760,12 @@ git commit -m "feat: 장바구니 GET/POST API 추가"
 
 **Files:** 없음 (확인만)
 
-- [ ] **Step 1: Redis 없이 전체 테스트 실행**
+- [x] **Step 1: Redis 없이 전체 테스트 실행** — 통과: 44 tests, 0 failures, 0 skipped (2026-10-14). Redis를 끈 상태였는지는 기록 없음
 
 Redis 서버가 꺼진 상태에서 Run: `./gradlew test`
 Expected: `BUILD SUCCESSFUL`, 실패 0
 
-- [ ] **Step 2: 애플리케이션을 띄워 실제 Redis 저장을 수동 확인**
+- [ ] **Step 2: 애플리케이션을 띄워 실제 Redis 저장을 수동 확인** — 미실행: `bootRun` + `redis-cli` 수동 확인 남음
 
 ```bash
 redis-server --daemonize yes   # 또는 docker run -d -p 6379:6379 redis:7
@@ -783,6 +783,6 @@ Expected:
 - `redis-cli GET` 결과 JSON에 `lines`·`idempotencyKey`가 있고 `productName`·`price`가 없다
 - `redis-cli TTL`이 `1800` 이하의 양수이고, `GET /cart`를 다시 호출해도 늘어나지 않는다
 
-- [ ] **Step 3: 스펙 상태 갱신 여부를 사람에게 확인**
+- [x] **Step 3: 스펙 상태 갱신 여부를 사람에게 확인** — Review Focus 4·5를 장바구니 스펙 4장에 반영(`1d740e8`)
 
 구현이 스펙과 다르게 된 부분이 있으면 스펙을 먼저 고친다. Review Focus 4·5의 결정이 승인되었으면 장바구니 스펙 4장에 반영한다.
