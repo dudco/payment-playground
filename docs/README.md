@@ -46,14 +46,14 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 기능별 기술 명세를 둔다. 하나의 기능이 독립적인 API 계약·상태 규칙·오류 처리·테스트 조건을 가질 때 새 문서를 만든다.
 
 - 상단에 `상태`, `작성일`, `최종 갱신일`을 기록한다.
-- 제목은 문서의 정체성을 유지하기 위해 날짜 없이 쓴다.
-- 예: 분할 결제를 시작하면 `specs/split-payment.md`를 새로 작성한다.
+- 파일명은 `YYYY-MM-DD-<feature>.md` 형식으로, 작성일을 앞에 붙인다. 문서 안의 제목에는 날짜를 쓰지 않는다.
+- 예: 분할 결제를 시작하면 `specs/YYYY-MM-DD-split-payment.md`를 새로 작성한다.
 - 기존 기능의 전체 흐름이 바뀌면 `prd.md`, `data-model.md`도 필요한 범위에서 함께 갱신하고 새 스펙 문서로 링크한다.
 
 현재 스펙:
 
-- [상품 조회 API 명세](specs/product-api.md)
-- [장바구니 API 명세](specs/cart-api.md)
+- [상품 조회 API 명세](specs/2026-10-13-product-api.md)
+- [장바구니 API 명세](specs/2026-10-13-cart-api.md)
 
 ### `plans/`
 
@@ -72,6 +72,6 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 3. 공유 데이터나 상태가 바뀌면 `data-model.md`를 갱신한다.
 4. 되돌리기 어려운 결정이 있으면 새 ADR을 추가한다.
 5. 구현 직전에 `plans/`에 날짜가 포함된 TDD 계획을 작성한다.
-6. 문서 검토 뒤 구현 코드와 자동 테스트를 같은 기능 PR에 추가한다.
+6. 스펙과 계획 문서의 검토가 끝나기 전에는 구현 코드를 작성하지 않는다. 검토가 끝나면 구현 코드와 자동 테스트를 같은 기능 PR에 추가한다.
 
-예를 들어 분할 결제는 `specs/split-payment.md`를 새로 만들고, 복수 Payment의 금액 정합성과 주문 상태가 바뀌는 만큼 `prd.md`와 `data-model.md`를 함께 갱신한다. 결제 배분·부분 취소 정책이 장기 결정이라면 다음 ADR도 추가한다.
+예를 들어 분할 결제는 `specs/YYYY-MM-DD-split-payment.md`를 새로 만들고, 복수 Payment의 금액 정합성과 주문 상태가 바뀌는 만큼 `prd.md`와 `data-model.md`를 함께 갱신한다. 결제 배분·부분 취소 정책이 장기 결정이라면 다음 ADR도 추가한다.

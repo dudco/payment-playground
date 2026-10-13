@@ -1,6 +1,6 @@
 # 상품·장바구니 API 구현 계획
 
-> 작성일: 2026-10-13 · 기준 문서: [상품 조회 API 명세](../specs/product-api.md), [장바구니 API 명세](../specs/cart-api.md)
+> 작성일: 2026-10-13 · 기준 문서: [상품 조회 API 명세](../specs/2026-10-13-product-api.md), [장바구니 API 명세](../specs/2026-10-13-cart-api.md)
 
 각 Task는 RED(실패하는 테스트) → GREEN(최소 구현) → REFACTOR 순서로 진행한다. 루트 패키지는 `io.github.dudco.paymentplayground`다.
 

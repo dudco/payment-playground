@@ -1,6 +1,6 @@
 # ADR-0006: 장바구니를 고객별로 하나 두고 Redis Hash에 저장
 
-- 상태: 승인됨
+- 상태: 제안됨 (검토 중)
 - 일자: 2026-10-13
 - 관계: [ADR-0002](0002-cart-checkout-creates-order.md)를 대체한다. [ADR-0003](0003-cart-in-redis-with-ttl.md)의 "Cart는 Redis에 TTL과 함께 저장한다"는 유지하고, 키(`cart:{idempotencyKey}`)와 JSON 값 형식, 주문 여부 판단 규칙을 대체한다.
 
