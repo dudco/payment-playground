@@ -60,11 +60,12 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 
 승인된 스펙을 실제로 구현하기 직전에 작성하는 실행 계획이다.
 
-- 파일명은 `YYYY-MM-DD-<feature>-implementation.md` 형식을 사용한다.
+- 파일명은 `YYYY-MM-DD-NN-<feature>-implementation.md` 형식을 사용한다. `NN`은 같은 날 작성한 계획의 순번(`01`부터)이다.
+- 예: `2026-10-13-01-cart-api-implementation.md`, 같은 날 두 번째 계획은 `2026-10-13-02-...`.
 - TDD 순서(RED → GREEN → REFACTOR), 정확한 대상 파일, 테스트 명령, 검증 기준을 기록한다.
 - 계획은 구현 작업 단위이며, 기능 요구사항의 기준 문서는 `prd.md`와 `specs/`다.
 
-현재 계획: [상품·장바구니 API 구현 계획](plans/2026-10-13-cart-api-implementation.md)
+현재 계획: [상품·장바구니 API 구현 계획](plans/2026-10-13-01-cart-api-implementation.md)
 
 ## 새 기능을 추가하는 순서
 
