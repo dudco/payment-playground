@@ -20,7 +20,7 @@
 ```text
 io.github.dudco.paymentplayground
 ├── cart
-│   ├── Cart                 고객 ID, 멱등키, 상품별 수량
+│   ├── Cart                 고객 ID, 멱등키, 장바구니 라인(상품별 수량)
 │   ├── CartRepository       저장소 인터페이스
 │   ├── RedisCartRepository  Redis JSON + TTL 구현
 │   ├── CartProperties       payment-playground.cart.* 설정
@@ -43,7 +43,7 @@ io.github.dudco.paymentplayground
   {
     "customerId": "customer-001",
     "idempotencyKey": "6f1c2a52-6c0e-4c55-9a43-6a6f0f6a8f10",
-    "items": [ { "productId": "americano", "quantity": 2 } ],
+    "lines": [ { "productId": "americano", "quantity": 2 } ],
     "createdAt": "2026-10-13T11:20:30Z",
     "updatedAt": "2026-10-13T11:25:00Z"
   }
@@ -59,7 +59,7 @@ io.github.dudco.paymentplayground
 - 고객 ID는 `X-Customer-ID` 헤더에서 얻는다(임시). 없거나 공백이면 `400 VALIDATION_ERROR`.
 - 수량은 상품당 1 이상 99 이하다.
 - 상품명·단가는 요청 시점의 `ProductCatalog` 값이다. `lineAmount = unitPrice × quantity`, `totalAmount = Σ lineAmount`.
-- 응답의 `items`는 `productId` 오름차순이다.
+- 응답의 `lines`는 `productId` 오름차순이다.
 - `expiresAt`은 Redis TTL로 계산한 만료 시각이다. 장바구니가 없으면 `null`이다.
 
 ### 4.1 멱등키 규칙
@@ -78,7 +78,7 @@ io.github.dudco.paymentplayground
 {
   "customerId": "customer-001",
   "idempotencyKey": "6f1c2a52-6c0e-4c55-9a43-6a6f0f6a8f10",
-  "items": [
+  "lines": [
     { "productId": "americano", "productName": "아메리카노", "unitPrice": 4500, "quantity": 2, "lineAmount": 9000 },
     { "productId": "cake", "productName": "케이크", "unitPrice": 6000, "quantity": 1, "lineAmount": 6000 }
   ],
@@ -87,7 +87,7 @@ io.github.dudco.paymentplayground
 }
 ```
 
-장바구니가 없으면 `idempotencyKey: null`, `items: []`, `totalAmount: 0`, `expiresAt: null`이다.
+장바구니가 없으면 `idempotencyKey: null`, `lines: []`, `totalAmount: 0`, `expiresAt: null`이다.
 
 ## 5. API 계약
 
@@ -99,17 +99,17 @@ io.github.dudco.paymentplayground
 
 ```json
 {
-  "items": [
+  "lines": [
     { "productId": "americano", "quantity": 2 },
     { "productId": "cake", "quantity": 1 }
   ]
 }
 ```
 
-1. `items`가 없거나, 원소의 `productId`가 비었거나, `quantity`가 1–99 범위 밖이거나, 같은 `productId`가 두 번 이상 나오면 `400 VALIDATION_ERROR`.
+1. `lines`가 없거나, 원소의 `productId`가 비었거나, `quantity`가 1–99 범위 밖이거나, 같은 `productId`가 두 번 이상 나오면 `400 VALIDATION_ERROR`.
 2. 카탈로그에 없는 상품이 하나라도 있으면 `404 PRODUCT_NOT_FOUND`이고 장바구니는 바뀌지 않는다.
-3. `items`가 비어 있으면 장바구니를 삭제하고 빈 장바구니를 반환한다.
-4. 기존 장바구니가 있으면 멱등키와 `createdAt`을 유지하고 `items`·`updatedAt`을 교체한다. 없으면 새 멱등키를 발급한다.
+3. `lines`가 비어 있으면 장바구니를 삭제하고 빈 장바구니를 반환한다.
+4. 기존 장바구니가 있으면 멱등키와 `createdAt`을 유지하고 `lines`·`updatedAt`을 교체한다. 없으면 새 멱등키를 발급한다.
 5. 저장하고 TTL을 다시 설정한 뒤 장바구니를 반환한다.
 
 같은 본문을 여러 번 보내도 결과 상태가 같다. 요청 자체가 멱등이므로 `POST /cart`에는 별도 `Idempotency-Key` 헤더를 받지 않는다.
@@ -125,12 +125,12 @@ io.github.dudco.paymentplayground
 
 ## 7. 테스트 수용 조건
 
-1. 장바구니가 없으면 `GET /cart`는 `idempotencyKey: null`, `items: []`, `totalAmount: 0`, `expiresAt: null`이다.
+1. 장바구니가 없으면 `GET /cart`는 `idempotencyKey: null`, `lines: []`, `totalAmount: 0`, `expiresAt: null`이다.
 2. 첫 `POST /cart`는 멱등키를 발급하고, Mock 카탈로그의 이름·단가로 `lineAmount`, `totalAmount`를 계산한다.
 3. 이어지는 `POST /cart`는 상품 추가·수량 변경·상품 제거를 모두 전체 교체로 반영하고, 멱등키는 바뀌지 않는다.
-4. 빈 `items`로 `POST /cart`하면 장바구니가 삭제된다. 이후 다시 담으면 다른 멱등키가 발급된다.
+4. 빈 `lines`로 `POST /cart`하면 장바구니가 삭제된다. 이후 다시 담으면 다른 멱등키가 발급된다.
 5. 없는 상품이 섞인 요청은 `404 PRODUCT_NOT_FOUND`이고 기존 장바구니가 그대로 남는다.
-6. `X-Customer-ID` 누락·공백, 수량 0·100, 빈 `productId`, 중복 `productId`, `items` 누락은 `400 VALIDATION_ERROR`이다.
+6. `X-Customer-ID` 누락·공백, 수량 0·100, 빈 `productId`, 중복 `productId`, `lines` 누락은 `400 VALIDATION_ERROR`이다.
 7. 저장 후 Redis 키에 설정값 TTL이 걸리고, 응답의 `expiresAt`이 그 TTL과 일치한다. `GET /cart`는 TTL을 바꾸지 않는다.
-8. 응답 `items`는 `productId` 오름차순이다.
+8. 응답 `lines`는 `productId` 오름차순이다.
 9. 고객 A의 저장이 고객 B의 장바구니와 멱등키에 영향을 주지 않는다.

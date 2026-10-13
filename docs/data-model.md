@@ -51,7 +51,7 @@ Future: Product 1 --- N Item
 | --- | --- | --- |
 | `customerId` | 고객 식별자 | 필수, 키 이름과 동일 |
 | `idempotencyKey` | 체크아웃 멱등키(UUID) | 필수, 장바구니가 처음 저장될 때 발급, 이후 변경 불가 |
-| `items` | `{ productId, quantity }` 배열 | 비어 있지 않음, `productId` 중복 없음, 수량 1–99 |
+| `lines` | `{ productId, quantity }` 배열 | 비어 있지 않음, `productId` 중복 없음, 수량 1–99 |
 | `createdAt` | 첫 저장 시각 | 필수 |
 | `updatedAt` | 마지막 저장 시각 | 필수 |
 
@@ -60,7 +60,7 @@ Future: Product 1 --- N Item
 Cart 생명주기:
 
 1. 상품이 있는 첫 `POST /cart`에서 키가 생기고 멱등키가 발급된다.
-2. 이후 `POST /cart`마다 `items`·`updatedAt`이 교체되고 TTL이 다시 설정된다. 멱등키와 `createdAt`은 유지된다.
+2. 이후 `POST /cart`마다 `lines`·`updatedAt`이 교체되고 TTL이 다시 설정된다. 멱등키와 `createdAt`은 유지된다.
 3. 빈 목록 저장이나 TTL 만료로 키가 사라지면 멱등키도 사라진다.
 4. 주문 생성 후의 처리는 주문 스펙에서 정한다([ADR-0007](adr/0007-checkout-idempotency-key.md)).
 

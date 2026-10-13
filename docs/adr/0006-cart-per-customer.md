@@ -15,7 +15,7 @@
 - 장바구니는 고객당 하나다.
 - 고객 ID는 Controller 파라미터 `@CurrentCustomer customerId: String`으로 받는다. 지금은 `X-Customer-ID` 요청 헤더를 읽는 resolver로 구현하고, 인증이 생기면 인증 정보에서 꺼내는 resolver로 교체한다. Controller와 Service는 헤더 이름을 알지 못한다.
 - API는 `GET /cart`(조회)와 `POST /cart`(전체 교체 저장) 두 개다. 빈 목록 저장이 비우기다.
-- Redis 키는 `cart:{customerId}`, 값은 `customerId`, `idempotencyKey`, `items`(상품 ID와 수량), `createdAt`, `updatedAt`을 가진 JSON 문자열 하나다. 저장은 `SET ... EX` 한 명령이다.
+- Redis 키는 `cart:{customerId}`, 값은 `customerId`, `idempotencyKey`, `lines`(상품 ID와 수량), `createdAt`, `updatedAt`을 가진 JSON 문자열 하나다. 저장은 `SET ... EX` 한 명령이다.
 - 상품명·가격은 저장하지 않는다([ADR-0005](0005-product-api-mock-catalog.md)).
 - TTL은 `payment-playground.cart.ttl`(기본 30분)이고 저장마다 다시 설정한다. 조회는 TTL을 연장하지 않는다.
 

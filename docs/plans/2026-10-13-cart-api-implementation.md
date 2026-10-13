@@ -40,10 +40,10 @@ Redis가 필요한 테스트는 `RedisCartRepositoryTest` 하나로 모은다. �
 ## Task 4: Cart 도메인
 
 - 테스트: `cart/CartTest`
-  - `replaceItems`는 상품 목록을 교체하고 멱등키·`createdAt`을 유지하며 `updatedAt`을 바꾼다
+  - `replaceLines`는 장바구니 라인을 교체하고 멱등키·`createdAt`을 유지하며 `updatedAt`을 바꾼다
   - 수량 범위(1–99) 밖은 `IllegalArgumentException`
-  - `items`는 `productId` 오름차순
-- 구현: `cart/Cart.kt` — `customerId`, `idempotencyKey`, `items: Map<String, Int>`, `createdAt`, `updatedAt`, `expiresAt?`
+  - `lines`는 `productId` 오름차순
+- 구현: `cart/Cart.kt` — `customerId`, `idempotencyKey`, `lines: Map<String, Int>`, `createdAt`, `updatedAt`, `expiresAt?`
 
 ## Task 5: CartService
 
@@ -54,7 +54,7 @@ Redis가 필요한 테스트는 `RedisCartRepositoryTest` 하나로 모은다. �
   - 없는 상품이 섞이면 `PRODUCT_NOT_FOUND`이고 기존 장바구니가 그대로다
   - 중복 `productId`는 `InvalidRequestException`
   - 금액은 카탈로그 가격으로 계산된다, 고객 간 격리
-- 구현: `cart/CartService.kt`, 응답 모델 `CartView`, `CartItemView`. 키 생성은 `IdempotencyKeyGenerator` 인터페이스(기본 구현: UUID)로 분리해 테스트에서 고정값을 넣는다. 시각은 `Clock`으로 얻는다.
+- 구현: `cart/CartService.kt`, 응답 모델 `CartView`, `CartLineView`. 키 생성은 `IdempotencyKeyGenerator` 인터페이스(기본 구현: UUID)로 분리해 테스트에서 고정값을 넣는다. 시각은 `Clock`으로 얻는다.
 
 ## Task 6: RedisCartRepository
 
@@ -70,7 +70,7 @@ Redis가 필요한 테스트는 `RedisCartRepositoryTest` 하나로 모은다. �
 
 - 테스트: `cart/CartControllerTest` (`@WebMvcTest`, `CartService`·`MockProductCatalog`·`InMemoryCartRepository`·고정 키 생성기·고정 `Clock`을 `@Import`)
   - 스펙 7장의 HTTP 수준 수용 조건(상태 코드, 오류 코드, 응답 본문)
-- 구현: `cart/CartController.kt`, 요청 DTO `SaveCartRequest(items: List<SaveCartItemRequest>)`
+- 구현: `cart/CartController.kt`, 요청 DTO `SaveCartRequest(lines: List<SaveCartLineRequest>)`
 
 ## 검증
 
@@ -80,6 +80,6 @@ redis-server --daemonize yes   # 또는 docker run -d -p 6379:6379 redis:7
 ./gradlew bootRun
 curl -s localhost:8080/products
 curl -s -X POST localhost:8080/cart -H 'X-Customer-ID: c1' -H 'Content-Type: application/json' \
-  -d '{"items":[{"productId":"americano","quantity":2}]}'
+  -d '{"lines":[{"productId":"americano","quantity":2}]}'
 redis-cli TTL cart:c1
 ```
