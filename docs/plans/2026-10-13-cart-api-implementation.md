@@ -12,9 +12,17 @@
 | `CartService` | 단위 테스트. `InMemoryCartRepository`(테스트 소스), `MockProductCatalog`, 고정 `Clock`, 고정 키 생성기 사용 | 아니오 |
 | `HeaderCurrentCustomerResolver` | `@WebMvcTest` + 테스트용 프로브 Controller | 아니오 |
 | `ProductController`, `CartController` | `@WebMvcTest` 슬라이스. Cart 저장소는 `InMemoryCartRepository`로 대체 | 아니오 |
-| `RedisCartRepository` | `@SpringBootTest`로 실제 Redis에 저장·TTL 확인 | 예 |
+| `CartRedisCodec` | 순수 단위 테스트. `Cart` ↔ JSON 왕복 | 아니오 |
+| `RedisCartRepository` | 단위 테스트. `StringRedisTemplate`을 Mockito mock으로 두고 호출된 명령·인자만 검증 | 아니오 |
 
-Redis가 필요한 테스트는 `RedisCartRepositoryTest` 하나로 모은다. 테스트 고객 ID는 `test-` 접두사를 쓰고 각 테스트 뒤에 키를 지운다.
+이 단계의 테스트는 Redis 없이 실행한다. 실제 Redis에 저장되는지는 확인하지 않고, 실제 Redis에서 깨지기 쉬운 두 부분은 Redis와 분리해 순수 단위 테스트로 검증한다.
+
+- JSON 직렬화·역직렬화: `CartRedisCodec`
+- TTL(남은 초)을 `expiresAt`으로 바꾸는 계산: `RedisCartRepository.expiresAt(ttlSeconds, now)` 같은 순수 함수
+
+`@SpringBootTest`(기존 `contextLoads` 등)는 Redis 없이도 컨텍스트가 뜬다. Lettuce 연결 팩토리는 첫 명령을 보낼 때 연결하므로, Redis 명령을 실행하지 않는 테스트는 Redis 서버가 필요 없다.
+
+실제 Redis 위의 테스트는 동시성 한계(동시 저장의 마지막 쓰기 승리, 첫 저장 경합)를 재현하는 단계에서 추가한다. mock으로는 경합을 재현할 수 없기 때문이다. 그때 Testcontainers 또는 로컬 Redis 중 하나를 그 단계의 계획에서 정한다.
 
 ## Task 1: 400 도메인 예외
 
@@ -56,14 +64,18 @@ Redis가 필요한 테스트는 `RedisCartRepositoryTest` 하나로 모은다. �
   - 금액은 카탈로그 가격으로 계산된다, 고객 간 격리
 - 구현: `cart/CartService.kt`, 응답 모델 `CartView`, `CartLineView`. 키 생성은 `IdempotencyKeyGenerator` 인터페이스(기본 구현: UUID)로 분리해 테스트에서 고정값을 넣는다. 시각은 `Clock`으로 얻는다.
 
-## Task 6: RedisCartRepository
+## Task 6: Redis 저장소
 
-- 테스트: `cart/RedisCartRepositoryTest` (`@SpringBootTest`, 실제 Redis)
-  - 저장 후 조회하면 같은 고객·멱등키·수량·시각이다
-  - 키 TTL이 설정값 이하·0 초과이고, 응답 `expiresAt`이 TTL과 일치한다(±2초)
-  - 조회는 TTL을 바꾸지 않는다
-  - 삭제는 해당 고객의 키만 지운다
-- 구현: `cart/CartRepository.kt`(인터페이스), `cart/RedisCartRepository.kt`(Spring Boot의 `JsonMapper`로 직렬화, `SET ... EX`), `cart/CartProperties.kt`
+- 테스트: `cart/CartRedisCodecTest` (순수 단위 테스트)
+  - `Cart`를 JSON으로 바꾼 뒤 다시 읽으면 고객·멱등키·라인·`createdAt`·`updatedAt`이 같다
+  - JSON에 상품명·가격 필드가 없다
+- 테스트: `cart/RedisCartRepositoryTest` (Mockito로 `StringRedisTemplate`과 `ValueOperations`를 mock)
+  - 저장은 `opsForValue().set("cart:{customerId}", <codec이 만든 JSON>, 설정 TTL)`을 한 번 호출한다
+  - 빈 장바구니 저장과 `delete`는 `delete("cart:{customerId}")`를 호출하고 `set`은 호출하지 않는다
+  - 조회는 `get` 결과를 codec으로 읽고, `getExpire(key, SECONDS)` 결과로 `expiresAt`을 채운다. `expire`·`set`은 호출하지 않는다(TTL 비연장)
+  - `get`이 `null`이면 `null`을 반환한다
+  - `expiresAt` 계산: 남은 초가 양수면 `now + 초`, `-1`(TTL 없음)·`-2`(키 없음)이면 `null` (고정 `Clock`)
+- 구현: `cart/CartRepository.kt`(인터페이스), `cart/CartRedisCodec.kt`(Spring Boot의 `JsonMapper`로 직렬화), `cart/RedisCartRepository.kt`(`SET ... EX`), `cart/CartProperties.kt`
 - 설정: `payment-playground.cart.ttl=30m`을 main·test `application.properties`에 추가. 애플리케이션 클래스에 `@ConfigurationPropertiesScan` 추가
 
 ## Task 7: CartController
@@ -74,12 +86,20 @@ Redis가 필요한 테스트는 `RedisCartRepositoryTest` 하나로 모은다. �
 
 ## 검증
 
+자동 테스트는 Redis 없이 실행한다.
+
+```bash
+./gradlew test
+```
+
+실제 Redis 저장과 TTL은 `bootRun` 후 수동으로 확인한다.
+
 ```bash
 redis-server --daemonize yes   # 또는 docker run -d -p 6379:6379 redis:7
-./gradlew test
 ./gradlew bootRun
 curl -s localhost:8080/products
 curl -s -X POST localhost:8080/cart -H 'X-Customer-ID: c1' -H 'Content-Type: application/json' \
   -d '{"lines":[{"productId":"americano","quantity":2}]}'
-redis-cli TTL cart:c1
+redis-cli GET cart:c1   # JSON에 lines·idempotencyKey가 있고 상품명·가격이 없다
+redis-cli TTL cart:c1   # 1800 이하
 ```

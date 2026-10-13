@@ -131,6 +131,6 @@ io.github.dudco.paymentplayground
 4. 빈 `lines`로 `POST /cart`하면 장바구니가 삭제된다. 이후 다시 담으면 다른 멱등키가 발급된다.
 5. 없는 상품이 섞인 요청은 `404 PRODUCT_NOT_FOUND`이고 기존 장바구니가 그대로 남는다.
 6. `X-Customer-ID` 누락·공백, 수량 0·100, 빈 `productId`, 중복 `productId`, `lines` 누락은 `400 VALIDATION_ERROR`이다.
-7. 저장 후 Redis 키에 설정값 TTL이 걸리고, 응답의 `expiresAt`이 그 TTL과 일치한다. `GET /cart`는 TTL을 바꾸지 않는다.
+7. 저장은 설정값 TTL을 담은 `SET` 한 명령으로 실행되고, 응답의 `expiresAt`은 남은 TTL로 계산된다. `GET /cart`는 TTL을 바꾸는 명령을 실행하지 않는다. 이 단계의 자동 테스트는 Redis 명령 호출과 인자까지만 검증하고, 실제 Redis 저장은 수동으로 확인한다([구현 계획](../plans/2026-10-13-cart-api-implementation.md#테스트-전략)).
 8. 응답 `lines`는 `productId` 오름차순이다.
 9. 고객 A의 저장이 고객 B의 장바구니와 멱등키에 영향을 주지 않는다.

@@ -25,7 +25,7 @@
 ./gradlew bootRun
 ```
 
-`bootRun` 시 Flyway가 `./data/payment-playground.db`에 마이그레이션을 자동 적용합니다. 애플리케이션과 테스트 모두 Redis가 기본 주소(`localhost:6379`)에서 실행 중이어야 합니다. 다른 주소는 `REDIS_HOST`, `REDIS_PORT` 환경 변수로 지정합니다.
+`bootRun` 시 Flyway가 `./data/payment-playground.db`에 마이그레이션을 자동 적용합니다. 애플리케이션을 실행할 때는 Redis가 기본 주소(`localhost:6379`)에서 실행 중이어야 합니다. 자동 테스트(`./gradlew test`)는 Redis 없이 실행됩니다. 다른 주소는 `REDIS_HOST`, `REDIS_PORT` 환경 변수로 지정합니다.
 
 ## 문서 구조
 
