@@ -88,6 +88,14 @@ class ApiExceptionHandlerTest(@Autowired private val mockMvc: MockMvc) {
 			.andExpect(jsonPath("$.message").value("필수 헤더가 없습니다: Idempotency-Key"))
 	}
 
+	@Test
+	fun `InvalidRequestException은 400 VALIDATION_ERROR가 된다`() {
+		mockMvc.perform(get("/probe/invalid"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+			.andExpect(jsonPath("$.message").value("요청이 올바르지 않습니다."))
+	}
+
 	@RestController
 	@RequestMapping("/probe")
 	class ProbeController {
@@ -100,6 +108,9 @@ class ApiExceptionHandlerTest(@Autowired private val mockMvc: MockMvc) {
 
 		@GetMapping("/unprocessable")
 		fun unprocessable(): String = throw UnprocessableException("PROBE_UNPROCESSABLE", "처리할 수 없는 요청입니다.")
+
+		@GetMapping("/invalid")
+		fun invalid(): String = throw InvalidRequestException("요청이 올바르지 않습니다.")
 
 		@PostMapping("/body")
 		fun body(@Valid @RequestBody request: ProbeRequest): ProbeRequest = request

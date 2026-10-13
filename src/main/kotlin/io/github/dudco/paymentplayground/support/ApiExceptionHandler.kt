@@ -20,6 +20,7 @@ class ApiExceptionHandler {
 	@ExceptionHandler(DomainException::class)
 	fun handleDomain(e: DomainException): ResponseEntity<ApiErrorResponse> {
 		val status = when (e) {
+			is InvalidRequestException -> HttpStatus.BAD_REQUEST
 			is NotFoundException -> HttpStatus.NOT_FOUND
 			is ConflictException -> HttpStatus.CONFLICT
 			is UnprocessableException -> HttpStatus.UNPROCESSABLE_CONTENT

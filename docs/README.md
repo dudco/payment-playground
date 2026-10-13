@@ -35,9 +35,12 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 현재 ADR:
 
 - [ADR-0001: 결제수단별 Gateway 분리](adr/0001-payment-gateway-by-method.md)
-- [ADR-0002: 멱등키 기반 Cart 초안에서만 주문 생성](adr/0002-cart-checkout-creates-order.md) (일부 대체됨)
-- [ADR-0003: Cart 초안을 Redis에 TTL과 함께 저장](adr/0003-cart-in-redis-with-ttl.md)
+- [ADR-0002: 멱등키 기반 Cart 초안에서만 주문 생성](adr/0002-cart-checkout-creates-order.md) (대체됨)
+- [ADR-0003: Cart 초안을 Redis에 TTL과 함께 저장](adr/0003-cart-in-redis-with-ttl.md) (일부 대체됨)
 - [ADR-0004: Flyway로 RDB 스키마 관리](adr/0004-flyway-schema-migration.md)
+- [ADR-0005: 상품 API는 코드 내 Mock 카탈로그로 제공](adr/0005-product-api-mock-catalog.md)
+- [ADR-0006: 장바구니를 고객별로 하나 두고 전체 교체 방식으로 저장](adr/0006-cart-per-customer.md)
+- [ADR-0007: 장바구니에서 발급한 체크아웃 멱등키를 주문·결제까지 사용](adr/0007-checkout-idempotency-key.md)
 
 ### `specs/`
 
@@ -48,17 +51,21 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 - 예: 분할 결제를 시작하면 `specs/split-payment.md`를 새로 작성한다.
 - 기존 기능의 전체 흐름이 바뀌면 `prd.md`, `data-model.md`도 필요한 범위에서 함께 갱신하고 새 스펙 문서로 링크한다.
 
-현재 스펙: [주문·결제 API 초안 명세](specs/order-payment-api.md)
+현재 스펙:
+
+- [상품 조회 API 명세](specs/product-api.md)
+- [장바구니 API 명세](specs/cart-api.md)
 
 ### `plans/`
 
 승인된 스펙을 실제로 구현하기 직전에 작성하는 실행 계획이다.
 
-- 파일명은 `YYYY-MM-DD-<feature>-implementation.md` 형식을 사용한다.
+- 파일명은 `YYYY-MM-DD-NN-<feature>-implementation.md` 형식을 사용한다. `NN`은 같은 날 작성한 계획의 순번(`01`부터)이다.
+- 예: `2026-10-13-01-cart-api-implementation.md`, 같은 날 두 번째 계획은 `2026-10-13-02-...`.
 - TDD 순서(RED → GREEN → REFACTOR), 정확한 대상 파일, 테스트 명령, 검증 기준을 기록한다.
 - 계획은 구현 작업 단위이며, 기능 요구사항의 기준 문서는 `prd.md`와 `specs/`다.
 
-현재 계획: [주문·결제 API 초안 구현 계획](plans/2026-09-13-order-payment-api-implementation.md)
+현재 계획: [상품·장바구니 API 구현 계획](plans/2026-10-13-01-cart-api-implementation.md)
 
 ## 새 기능을 추가하는 순서
 
@@ -67,6 +74,6 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 3. 공유 데이터나 상태가 바뀌면 `data-model.md`를 갱신한다.
 4. 되돌리기 어려운 결정이 있으면 새 ADR을 추가한다.
 5. 구현 직전에 `plans/`에 날짜가 포함된 TDD 계획을 작성한다.
-6. 문서 검토 뒤 구현 코드와 자동 테스트를 같은 기능 PR에 추가한다.
+6. 스펙과 계획 문서의 검토가 끝나기 전에는 구현 코드를 작성하지 않는다. 검토가 끝나면 구현 코드와 자동 테스트를 같은 기능 PR에 추가한다.
 
 예를 들어 분할 결제는 `specs/split-payment.md`를 새로 만들고, 복수 Payment의 금액 정합성과 주문 상태가 바뀌는 만큼 `prd.md`와 `data-model.md`를 함께 갱신한다. 결제 배분·부분 취소 정책이 장기 결정이라면 다음 ADR도 추가한다.

@@ -1,27 +1,26 @@
 # 주문·결제 데이터 모델
 
-> 문서 역할과 갱신 원칙은 [문서 가이드](README.md)를 따른다. 기능별 API 계약은 [기능 스펙](specs/order-payment-api.md), 제품 범위는 [PRD](prd.md)를 기준으로 한다.
+> 문서 역할과 갱신 원칙은 [문서 가이드](README.md)를 따른다. 기능별 API 계약은 [기능 스펙](specs/), 제품 범위는 [PRD](prd.md)를 기준으로 한다.
 
 ## 1. 목적
 
-이 문서는 장바구니 초안·주문·결제 API의 저장 모델과 데이터 보존 기준을 정의한다. Cart는 Redis, 주문·결제는 SQLite/JPA에 저장한다([ADR-0003](adr/0003-cart-in-redis-with-ttl.md)). RDB 스키마는 Flyway SQL 마이그레이션으로만 만들고 바꾼다([ADR-0004](adr/0004-flyway-schema-migration.md)). 이 문서의 필드·제약이 바뀌면 새 마이그레이션 버전 파일을 함께 추가한다.
+이 문서는 상품·장바구니·주문·결제의 저장 모델과 데이터 보존 기준을 정의한다. 상품은 코드 내 Mock 카탈로그로만 존재하고([ADR-0005](adr/0005-product-api-mock-catalog.md)), 장바구니는 Redis([ADR-0003](adr/0003-cart-in-redis-with-ttl.md), [ADR-0006](adr/0006-cart-per-customer.md), [ADR-0007](adr/0007-checkout-idempotency-key.md)), 주문·결제는 SQLite/JPA에 저장한다. RDB 스키마는 Flyway SQL 마이그레이션으로만 만들고 바꾼다([ADR-0004](adr/0004-flyway-schema-migration.md)). 이 문서의 필드·제약이 바뀌면 새 마이그레이션 버전 파일을 함께 추가한다.
 
 금액은 KRW 최소 단위인 정수로 저장한다. 통화 변환은 지원하지 않는다.
 
 ## 2. 저장소와 관계
 
 ```text
-[Redis]  Cart (cart:{idempotencyKey}, TTL)
+[코드]   Product (MockProductCatalog, 고정 목록)
+            ┆ productId로 참조 (FK 없음)
+[Redis]  Cart (cart:{customerId}, JSON, TTL)
             ┆ idempotencyKey로 논리 연결 (FK 없음)
-[RDB]    Order 1 --- N OrderLine
-         Order 1 --- N Payment
+
+[RDB]    Order 1 --- N OrderLine        ← 주문 스펙 작성 시 확정
+         Order 1 --- N Payment          ← 결제 스펙 작성 시 확정
 
 Future: Product 1 --- N Item
 ```
-
-`Cart`는 별도 `CartLine`을 가지지 않는다. Cart JSON 안의 `orderLines` 배열에 주문 초안 라인을 보관하고, 주문 생성 시에만 `OrderLine` 행으로 복사한다.
-
-"이 멱등키로 주문이 생성되었는가"의 유일한 기준은 `orders.idempotency_key`다. Redis Cart에는 상태를 두지 않는다.
 
 `Product`는 고객에게 판매하는 상품 카탈로그 단위이고, `Item`은 매입가·매입 거래처·재고를 관리하는 품목 단위다. 하나의 `Product`에 여러 `Item`이 연결될 수 있다. 주문은 `Item`이 아니라 판매 시점의 `Product`를 참조하는 `OrderLine`을 가진다.
 
@@ -29,41 +28,43 @@ Future: Product 1 --- N Item
 
 `order`는 SQL 예약어이므로 주문 테이블은 `orders`로 고정한다. 엔티티 클래스 이름은 `Order`를 유지하고 `@Table(name = "orders")`로 매핑한다. 나머지 테이블은 `order_lines`, `payments`로 쓴다.
 
-## 3. Cart (Redis)
+## 3. 상품과 장바구니
 
-- 키: `cart:{idempotencyKey}`
-- 값: 아래 필드를 가진 JSON 문자열 하나
-- TTL: 설정값 `payment-playground.cart.ttl`(기본 1시간). 생성·갱신할 때마다 다시 설정한다.
+### 3.1 Product (Mock)
 
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
-| `idempotencyKey` | Cart 생성·조회·주문 전환에 쓰는 키 | 필수, 키 이름과 동일 |
-| `customerId` | 고객 참조 식별자 | 필수, 생성 후 변경 불가 |
-| `orderLines` | 상품·수량·판매가의 주문 초안 스냅샷 배열 | 필수, 비어 있지 않음 |
-| `totalAmount` | `orderLines`에서 계산한 합계 | 0보다 큼 |
-| `createdAt` | Cart 생성 시각 | 필수 |
-| `updatedAt` | 마지막 갱신 시각 | 필수 |
+| `id` | 상품 식별자 | 카탈로그 안에서 유일 |
+| `name` | 판매명 | 필수 |
+| `price` | 판매가(KRW) | 0 이상 |
 
-`expiresAt`은 저장하지 않고 응답할 때 Redis TTL로 계산한다.
+저장소가 없다. 목록은 [상품 조회 API 명세](specs/product-api.md#3-mock-상품-목록)를 따른다.
 
-`orderLines`의 각 원소는 다음 비민감 필드만 허용한다.
+### 3.2 Cart (Redis)
 
-```json
-{
-  "productId": "americano",
-  "productName": "아메리카노",
-  "quantity": 2,
-  "unitPrice": 4500
-}
-```
+- 키: `cart:{customerId}`
+- 값: JSON 문자열 하나. `SET ... EX`로 한 번에 쓴다.
+- TTL: 설정값 `payment-playground.cart.ttl`(기본 30분). 저장할 때마다 다시 설정하고, 조회는 연장하지 않는다.
+- 상품이 하나도 없으면 키가 없다.
 
-원 주문 요청 전체, 카드 정보, PG 토큰, 포인트 바코드, VAN 원문은 Cart에 저장하지 않는다.
+| 필드 | 설명 | 제약 |
+| --- | --- | --- |
+| `customerId` | 고객 식별자 | 필수, 키 이름과 동일 |
+| `idempotencyKey` | 체크아웃 멱등키(UUID) | 필수, 장바구니가 처음 저장될 때 발급, 이후 변경 불가 |
+| `lines` | `{ productId, quantity }` 배열 | 비어 있지 않음, `productId` 중복 없음, 수량 1–99 |
+| `createdAt` | 첫 저장 시각 | 필수 |
+| `updatedAt` | 마지막 저장 시각 | 필수 |
+
+상품명·판매가·합계는 저장하지 않는다. 응답할 때 카탈로그로 계산한다. `expiresAt`도 저장하지 않고 Redis TTL로 계산한다. 결제 정보는 어떤 형태로도 저장하지 않는다.
 
 Cart 생명주기:
 
-1. `POST /order/cart`로 생성된다.
-2. 같은 키의 `POST /order/cart`로 내용이 교체되고 TTL이 다시 설정된다. `customerId`가 다르면 거절한다.
-3. `POST /order`가 커밋되면 삭제된다. 삭제되지 않더라도 TTL이 지나면 사라진다.
+1. 상품이 있는 첫 `POST /cart`에서 키가 생기고 멱등키가 발급된다.
+2. 이후 `POST /cart`마다 `lines`·`updatedAt`이 교체되고 TTL이 다시 설정된다. 멱등키와 `createdAt`은 유지된다.
+3. 빈 목록 저장이나 TTL 만료로 키가 사라지면 멱등키도 사라진다.
+4. 주문 생성 후의 처리는 주문 스펙에서 정한다([ADR-0007](adr/0007-checkout-idempotency-key.md)).
+
+> 아래 4장 이후의 주문·결제 모델은 이전 설계에서 남긴 초안이다. 주문·결제 스펙을 작성할 때 장바구니 변경([ADR-0006](adr/0006-cart-per-customer.md))에 맞춰 다시 확정한다. `orders.idempotency_key`는 장바구니에서 발급한 체크아웃 멱등키를 그대로 쓴다([ADR-0007](adr/0007-checkout-idempotency-key.md)). 장바구니 삭제 시점과 결제의 멱등키 사용 방식은 각 스펙에서 확정한다.
 
 ## 4. Order (`orders`)
 
@@ -191,4 +192,4 @@ Payment는 Gateway 결과가 나온 뒤 한 번 저장되며 이후 상태가 �
 - unique 제약: `orders.idempotency_key`, `(payments.method, payments.provider_transaction_id)`.
 - 조회 인덱스: `order_lines.order_id`, `payments.order_id`.
 - 금액과 수량은 애플리케이션 검증과 DB 제약(`CHECK`)을 함께 적용한다. 제약은 Flyway 마이그레이션 SQL에 정의한다.
-- "주문당 `APPROVED` 결제는 최대 하나"는 이 단계에서 애플리케이션 검사로만 보장한다. 동시 요청에서는 깨질 수 있다([PRD 10. 알려진 한계](prd.md#10-알려진-한계)).
+- "주문당 `APPROVED` 결제는 최대 하나"는 이 단계에서 애플리케이션 검사로만 보장한다. 동시 요청에서는 깨질 수 있다([PRD 10. 알려진 한계](prd.md#8-알려진-한계)).
