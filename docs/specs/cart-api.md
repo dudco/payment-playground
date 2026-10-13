@@ -1,6 +1,6 @@
 # 장바구니 API 명세
 
-> 상태: 검토 중 · 작성일: 2026-10-13 · 최종 갱신일: 2026-10-13
+> 상태: 검토 중 · 작성일: 2026-10-13 · 최종 갱신일: 2026-10-14
 
 > [PRD](../prd.md), [데이터 모델](../data-model.md), [ADR-0003](../adr/0003-cart-in-redis-with-ttl.md), [ADR-0005](../adr/0005-product-api-mock-catalog.md), [ADR-0006](../adr/0006-cart-per-customer.md), [ADR-0007](../adr/0007-checkout-idempotency-key.md)을 바탕으로 한 첫 번째 기능 명세다. 트래픽이 거의 없는 환경을 전제로 하며, 동시성 제어는 넣지 않는다([PRD 8. 알려진 한계](../prd.md#8-알려진-한계)).
 
@@ -56,9 +56,10 @@ io.github.dudco.paymentplayground
 
 ## 4. 공통 규칙
 
-- 고객 ID는 `X-Customer-ID` 헤더에서 얻는다(임시). 없거나 공백이면 `400 VALIDATION_ERROR`.
+- 고객 ID는 `X-Customer-ID` 헤더에서 얻는다(임시). 앞뒤 공백은 제거한다(`" c1 "`과 `"c1"`은 같은 고객). 없거나 공백이면 `400 VALIDATION_ERROR`.
 - 수량은 상품당 1 이상 99 이하다.
 - 상품명·단가는 요청 시점의 `ProductCatalog` 값이다. `lineAmount = unitPrice × quantity`, `totalAmount = Σ lineAmount`.
+- 저장된 라인 중 카탈로그에 더 이상 없는 상품은 응답의 `lines`와 `totalAmount`에서 제외한다(저장값은 다음 `POST /cart`에서 교체된다).
 - 응답의 `lines`는 `productId` 오름차순이다.
 - `expiresAt`은 Redis TTL로 계산한 만료 시각이다. 장바구니가 없으면 `null`이다.
 
