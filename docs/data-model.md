@@ -64,7 +64,7 @@ Cart 생명주기:
 3. 빈 목록 저장이나 TTL 만료로 키가 사라지면 멱등키도 사라진다.
 4. 주문 생성 후의 처리는 주문 스펙에서 정한다([ADR-0007](adr/0007-checkout-idempotency-key.md)).
 
-> 4·5장의 주문 모델은 [주문 API 명세](specs/order-api.md#3-저장-모델)(초안)를 기준으로 하며, 스펙이 승인되면 이 문서에 반영해 확정한다. 7장 이후의 결제 모델은 이전 설계에서 남긴 초안이다. 주문·결제 스펙을 작성할 때 장바구니 변경([ADR-0006](adr/0006-cart-per-customer.md))에 맞춰 다시 확정한다. `orders.idempotency_key`는 장바구니에서 발급한 체크아웃 멱등키를 그대로 쓴다([ADR-0007](adr/0007-checkout-idempotency-key.md)). 장바구니 삭제 시점과 결제의 멱등키 사용 방식은 각 스펙에서 확정한다.
+> 4·5장의 주문 모델은 [주문 API 명세](specs/order-api.md#3-저장-모델) 기준으로 확정되었다. 7장 이후의 결제 모델은 이전 설계에서 남긴 초안이다. 주문·결제 스펙을 작성할 때 장바구니 변경([ADR-0006](adr/0006-cart-per-customer.md))에 맞춰 다시 확정한다. `orders.idempotency_key`는 장바구니에서 발급한 체크아웃 멱등키를 그대로 쓴다([ADR-0007](adr/0007-checkout-idempotency-key.md)). 장바구니 삭제 시점과 결제의 멱등키 사용 방식은 각 스펙에서 확정한다.
 
 ## 4. Order (`orders`)
 

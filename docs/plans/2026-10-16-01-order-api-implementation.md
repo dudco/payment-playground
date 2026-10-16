@@ -497,7 +497,7 @@ git commit -m "feat: 주문 생성·조회 API 추가"
 Redis 서버가 꺼진 상태에서 Run: `./gradlew test`
 Expected: `BUILD SUCCESSFUL`, 실패 0. 기존 44개 + 주문 관련 신규 테스트.
 
-- [ ] **Step 2: 애플리케이션을 띄워 실제 Redis·SQLite로 수동 확인** — 대기: 작업 환경에 Redis가 없어 맥에서 직접 확인 필요
+- [x] **Step 2: 애플리케이션을 띄워 실제 Redis·SQLite로 수동 확인** — 대체: 같은 시나리오를 다음 단계(PostgreSQL 전환·Docker Compose 기반 E2E 테스트)에서 자동화해 확인한다 (2026-10-16 결정)
 
 ```bash
 redis-server --daemonize yes   # 또는 docker run -d -p 6379:6379 redis:7
@@ -515,6 +515,6 @@ Expected:
 - `redis-cli EXISTS cart:c1`이 `0`
 - `orders` 1행(`status` `CREATED`, `created_at`이 ISO-8601 문자열), `order_lines` 1행, Flyway 버전 `1`
 
-- [ ] **Step 3: 스펙·데이터 모델 갱신 여부를 사람에게 확인** — 일부 진행: 최종 리뷰에서 지적된 PRD·데이터 모델의 사실 불일치는 `8b79c7f`에서 정리. 스펙 상태(`초안` → `승인됨`)와 데이터 모델 초안 안내 문구 정리는 승인 후 진행
+- [x] **Step 3: 스펙·데이터 모델 갱신 여부를 사람에게 확인** — 승인(2026-10-16): 스펙 상태 `승인됨`, PRD 단계표 `구현 완료`, 데이터 모델 4·5장 확정. 사실 불일치 정리는 `8b79c7f`
 
 구현이 스펙과 다르게 된 부분이 있으면 스펙을 먼저 고친다. 스펙이 승인되면 `data-model.md` 4·5장을 스펙 3장 기준으로 확정하고(초안 안내 문구 정리, FK 미강제·`TEXT` 시각 저장 반영), 스펙 상태와 PRD 단계표를 갱신한다.

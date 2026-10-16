@@ -30,7 +30,7 @@
 | --- | --- | --- | --- |
 | 1 | 상품 조회 (Mock) | 구현 완료 | [상품 조회 API 명세](specs/product-api.md), [ADR-0005](adr/0005-product-api-mock-catalog.md) |
 | 1 | 장바구니 | 구현 완료 | [장바구니 API 명세](specs/cart-api.md), [ADR-0006](adr/0006-cart-per-customer.md), [ADR-0007](adr/0007-checkout-idempotency-key.md) |
-| 2 | 주문 생성 | 구현 완료(스펙 승인 대기) | [주문 API 명세](specs/order-api.md). 장바구니의 멱등키로 주문을 만들고 가격을 스냅샷한다. 같은 키 재호출은 기존 주문을 반환한다. |
+| 2 | 주문 생성 | 구현 완료 | [주문 API 명세](specs/order-api.md). 장바구니의 멱등키로 주문을 만들고 가격을 스냅샷한다. 같은 키 재호출은 기존 주문을 반환한다. |
 | 3 | 결제 | 예정 | 같은 멱등키로 결제를 요청한다. 온라인 카드·오프라인 카드·자체 포인트를 결제수단별 Gateway로 처리한다([ADR-0001](adr/0001-payment-gateway-by-method.md)). |
 
 ## 4. 현재 단계 목표와 비범위

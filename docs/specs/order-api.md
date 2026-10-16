@@ -1,6 +1,6 @@
 # 주문 API 명세
 
-> 상태: 초안 · 작성일: 2026-10-14 · 최종 갱신일: 2026-10-16
+> 상태: 승인됨 · 작성일: 2026-10-14 · 최종 갱신일: 2026-10-16
 
 > [PRD](../prd.md), [데이터 모델](../data-model.md), [장바구니 API 명세](cart-api.md), [ADR-0003](../adr/0003-cart-in-redis-with-ttl.md), [ADR-0004](../adr/0004-flyway-schema-migration.md), [ADR-0007](../adr/0007-checkout-idempotency-key.md)을 바탕으로 한 두 번째 기능 명세다. 트래픽이 거의 없는 환경을 전제로 하며, 동시성 제어는 넣지 않는다([PRD 8. 알려진 한계](../prd.md#8-알려진-한계)).
 
