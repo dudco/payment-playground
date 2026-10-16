@@ -376,3 +376,21 @@ git commit -m "refactor: 주문이 장바구니를 CartService로 조회·삭제
 - [x] **Step 1:** (확인: 세 검색 모두 결과 없음, 컨트롤러 테스트 단언 변경 없음) Task 5 Step 1·2의 확인을 다시 실행하고, 추가로 `grep -rn "import io.github.dudco.paymentplayground.cart.CartRepository\|import io.github.dudco.paymentplayground.product.ProductRepository" src/main`이 각 기능 자기 패키지 밖에서 결과 없음을 확인한다.
 - [x] **Step 2:** (통과 83/83) `./gradlew test` → 83개 통과.
 - [x] **Step 3:** 스펙의 의존 설명을 고친다: 상품 스펙 2장 "다른 기능은 `ProductService`만 의존한다", 장바구니 스펙 2·4장의 상품 조회 주체를 `ProductService`로, 주문 스펙 1·2·5.1장의 `CartRepository`·`ProductRepository`를 `CartService`·`ProductService`로. 커밋 `docs: 기능 사이 접근을 서비스로 한정한 내용을 스펙에 반영`.
+
+---
+
+## 추가 2 (2026-10-16): 읽기는 저장소, 변경은 서비스
+
+컨벤션 1.1을 다시 정했다: 다른 기능의 데이터를 읽기만 할 때는 저장소 인터페이스와 도메인 모델을 쓸 수 있고, 규칙이 걸린 읽기와 모든 상태 변경은 그 기능의 서비스를 거친다(3.1에 캐시 위치 기준 추가). Task 6은 이 기준에 맞춰 되돌리고, Task 7(주문 → `CartService.findForCheckout`·`clear`)은 유지한다. Task 7 커밋이 Task 6 위에 있어 `git revert`가 충돌하므로 되돌리는 변경을 새 커밋으로 만든다.
+
+### Task 9: 상품 읽기를 ProductRepository로 되돌림
+
+**Files:** `product/ProductService.kt`(`findByIds` 제거), `cart/CartService.kt`, `order/OrderService.kt`, 테스트 `product/ProductServiceTest.kt`(`findByIds` 테스트 제거), `cart/CartServiceTest.kt`, `cart/CartControllerTest.kt`(`@Import`에서 `ProductService` 제거)
+
+- `CartService(cartRepository, productRepository: ProductRepository, keyGenerator, clock)`, `OrderService(orderRepository, cartService, productRepository: ProductRepository, transactionTemplate, clock)` — Task 5 시점의 상품 조회 방식(`findById`)으로 되돌린다. 주문의 장바구니 접근(`findForCheckout`·`clear`)은 그대로다.
+- 동작 변화가 없는 되돌림이므로 새 테스트는 없다. 기존 테스트가 기준이다.
+
+- [ ] **Step 1: 되돌리기 구현** — `ProductService`·`ProductResult`·`ProductServiceTest`의 나머지 두 테스트는 유지한다.
+- [ ] **Step 2: 전체 테스트** — Run: `./gradlew test`, Expected: PASS, 82개(83 − `findByIds` 테스트 1). `grep -rn "CartRepository\|StoredCart" src/main/kotlin/io/github/dudco/paymentplayground/order`가 결과 없음.
+- [ ] **Step 3: 커밋** — `refactor: 다른 기능의 상품 읽기를 ProductRepository로 되돌림`
+- [ ] **Step 4: 스펙 갱신** — 상품 스펙 2장(다른 기능은 읽기용으로 `ProductRepository`, 변경 API 없음), 장바구니 스펙 2·4장(상품 조회 주체 `ProductRepository`), 주문 스펙 1·2·5.1장(상품은 `ProductRepository`, 장바구니는 `CartService`). 커밋 `docs: 읽기·변경 기준에 맞춰 스펙 정리`.
