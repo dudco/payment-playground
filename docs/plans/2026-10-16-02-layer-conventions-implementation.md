@@ -58,7 +58,7 @@
   - `CartService`·`OrderService`의 생성자 파라미터는 `productRepository: ProductRepository`로 이름과 타입을 바꾼다(동작 그대로).
   - 테스트 지원: `OrderTestFixtures.kt`의 `MutableProductCatalog` → `class MutableProductRepository : ProductRepository`(`reset()`은 `FixedProductRepository().findAll()`로 되돌림), 빈 메서드 `@Bean @Primary fun mutableProductRepository(): MutableProductRepository`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 class ProductServiceTest {
@@ -80,21 +80,21 @@ class ProductServiceTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 컴파일 오류 `Unresolved reference 'ProductService'` (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.product.ProductServiceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'ProductService'`)
 
-- [ ] **Step 3: Implement per Interfaces, then update every reference**
+- [x] **Step 3: Implement per Interfaces, then update every reference**
 
 `git mv`로 `MockProductCatalog.kt`를 옮긴 뒤 이름을 바꾼다. `ProductControllerTest`는 `@Import(ProductService::class, FixedProductRepository::class)`로 바꾸고 단언은 그대로 둔다. 장바구니·주문 테스트는 `MockProductCatalog`/`MutableProductCatalog`를 새 이름으로 바꾼다. 끝나면 `grep -rn "Catalog" src`가 아무것도 찾지 않아야 한다.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests** — 통과: 전체 78/78 (2026-10-16)
 
 Run: `./gradlew test`
 Expected: PASS, 78개(76 + `ProductServiceTest` 2)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `c83fdd5`
 
 ```bash
 git add -A src
