@@ -295,7 +295,7 @@ git commit -m "docs: 컨벤션 리팩터링에 맞춰 상품 저장소 이름과
 - `CartService(cartRepository, productService: ProductService, keyGenerator, clock)`: 저장 시 요청 상품 중 하나라도 `findByIds` 결과에 없으면 `productNotFound()`. 응답 계산은 `findByIds(cart.lines.keys)` 한 번으로 상품명·단가를 얻고, 결과에 없는 라인은 지금처럼 제외한다.
 - `OrderService(..., productService: ProductService, ...)`: 주문 라인 스냅샷을 `findByIds`로 만든다. 없는 상품 라인 제외, 남는 라인이 없으면 `cartNotFound()`는 그대로.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 @Test
@@ -308,21 +308,21 @@ fun `여러 상품을 ID로 찾고 없는 ID는 결과에서 빠진다`() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 컴파일 오류 `Unresolved reference 'findByIds'` (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.product.ProductServiceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'findByIds'`)
 
-- [ ] **Step 3: Implement `findByIds`, then switch `CartService`·`OrderService` from `ProductRepository` to `ProductService`**
+- [x] **Step 3: Implement `findByIds`, then switch `CartService`·`OrderService` from `ProductRepository` to `ProductService`**
 
 `CartServiceTest`는 `CartService(repository, ProductService(FixedProductRepository()), …)`로 만든다.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests** — 통과: 전체 80/80, cart·order에서 Product·ProductRepository 참조 없음 (2026-10-16)
 
 Run: `./gradlew test`
 Expected: PASS, 80개. `grep -rn "ProductRepository\|Product\b" src/main/kotlin/io/github/dudco/paymentplayground/{cart,order}`가 결과 없음.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `b66e4f6`
 
 ```bash
 git add -A src
