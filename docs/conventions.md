@@ -98,21 +98,30 @@ product ◀── cart ◀── order ◀── (payment)
 
 `View`, `Dto`, `Info` 같은 접미사는 쓰지 않는다.
 
-## 3. 파일
+## 3. 패키지와 파일
 
-기능 패키지 안의 파일은 역할별로 나눈다.
+기능 패키지 안을 계층별 하위 패키지로 나눈다. 패키지 이름은 단수형이다. 모든 기능이 같은 구조를 쓴다(파일이 하나뿐인 하위 패키지도 둔다).
 
-| 파일 | 내용 |
-| --- | --- |
-| `XxxController.kt` | 컨트롤러 |
-| `XxxApi.kt` | 그 기능의 HTTP 계약: `Request`·`Response`와 `Response.from(...)`. 스펙의 요청·응답 절과 1:1로 대응한다. |
-| `XxxService.kt` | 서비스와 그 `Command`·`Result` |
-| `Xxx.kt` | 도메인 모델·엔티티(필요하면 관련 enum·값 타입) |
-| `XxxRepository.kt` | 저장소 인터페이스(또는 Spring Data 인터페이스)와 저장소가 반환하는 값 타입 |
-| `<기술>XxxRepository.kt` | 저장소 구현과, 그 구현만 아는 저장 형식(직렬화용 문서 클래스·인코딩 함수는 `private`) |
-| `XxxErrors.kt` | 그 기능의 도메인 오류를 만드는 함수(`productNotFound()` 등) |
-| `XxxProperties.kt` | 그 기능의 설정(`@ConfigurationProperties`) |
+```text
+<기능>/
+├── controller/   XxxController, XxxApi
+├── service/      XxxService(또는 유스케이스별 서비스)와 Command·Result
+├── domain/       도메인 모델·엔티티, XxxErrors
+└── repository/   저장소 인터페이스와 구현, 저장소 설정(XxxProperties)
+```
 
+| 하위 패키지 | 파일 | 내용 |
+| --- | --- | --- |
+| `controller` | `XxxController.kt` | 컨트롤러 |
+| `controller` | `XxxApi.kt` | 그 기능의 HTTP 계약: `Request`·`Response`와 `Response.from(...)`. 스펙의 요청·응답 절과 1:1로 대응한다. |
+| `service` | `XxxService.kt` / `<동작><대상>Service.kt` | 서비스와 그 `Command`·`Result`. 여러 서비스가 함께 쓰는 `Result`는 `<대상>Result.kt`에 둔다. |
+| `domain` | `Xxx.kt` | 도메인 모델·엔티티(필요하면 관련 enum·값 타입) |
+| `domain` | `XxxErrors.kt` | 그 기능의 도메인 오류를 만드는 함수(`productNotFound()` 등) |
+| `repository` | `XxxRepository.kt` | 저장소 인터페이스(또는 Spring Data 인터페이스)와 저장소가 반환하는 값 타입 |
+| `repository` | `<기술>XxxRepository.kt` | 저장소 구현과, 그 구현만 아는 저장 형식(직렬화용 문서 클래스·인코딩 함수는 `private`) |
+| `repository` | `XxxProperties.kt` | 저장소가 쓰는 설정(`@ConfigurationProperties`) |
+
+- 하위 패키지 사이의 import가 2.1의 계층 의존 규칙을 그대로 보여 준다. 예: `controller`는 같은 기능의 `domain`·`repository`를 import하지 않는다. `domain`은 `service`·`repository`·`controller`를 import하지 않는다.
 - 저장 형식(예: Redis JSON 모양)은 저장소 구현의 세부 사항이다. 별도 코덱·문서 클래스를 공개 타입으로 두지 않는다.
 - 저장소 인터페이스는 구현을 바꿔 끼우거나(테스트의 메모리 구현, 캐시 데코레이터 포함) 다른 기능이 구현이 아니라 계약으로 읽어야 할 때 둔다. Spring Data JPA 저장소는 인터페이스 자체가 계약이다.
 
@@ -126,7 +135,7 @@ product ◀── cart ◀── order ◀── (payment)
 기능마다 서비스 하나(`XxxService`)로 시작한다. 다음 중 하나에 해당하면 나눈다.
 
 - 성격이 다른 호출자(컨트롤러, 다른 기능, 배치 등)가 둘 이상이고 그 요구가 갈라지기 시작했다.
-- public 메서드가 6개를 넘거나 생성자 의존성이 5개를 넘는다.
+- public 메서드가 6개를 넘거나 생성자 의존성이 5개를 넘는다. 의존성 수에는 `Clock`, `TransactionTemplate`처럼 모든 서비스가 쓰는 기술 요소를 세지 않는다.
 
 나누는 순서:
 
@@ -139,7 +148,8 @@ product ◀── cart ◀── order ◀── (payment)
 ## 5. 테스트
 
 - 테스트는 대상 계층의 타입으로 단언한다: 컨트롤러 테스트는 JSON 응답(필드 이름·값·상태 코드), 서비스 테스트는 `Result`, 저장소 테스트는 저장된 값.
-- 여러 기능이 함께 쓰는 테스트 지원 코드는 테스트 소스의 `support` 패키지에 둔다(예: 순서대로 키를 만드는 `SequentialIdempotencyKeyGenerator`). 한 기능만 쓰면 그 기능의 `XxxTestFixtures.kt`에 둔다.
+- 테스트는 대상 클래스와 같은 패키지에 둔다(예: `cart.service.CartServiceTest`).
+- 여러 기능이 함께 쓰는 테스트 지원 코드는 테스트 소스의 `support` 패키지에 둔다(예: `SequentialIdempotencyKeyGenerator`, `MutableClock`). 한 기능의 저장소를 대신하는 테스트 구현은 그 기능의 `repository` 테스트 패키지에 둔다(예: `cart.repository.InMemoryCartRepository`). 한 기능의 여러 계층 테스트가 함께 쓰는 설정은 그 기능 루트의 `XxxTestFixtures.kt`에 둔다.
 
 ## 6. 예외로 두는 것
 
