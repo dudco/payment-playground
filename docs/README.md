@@ -55,6 +55,7 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 
 - [상품 조회 API 명세](specs/product-api.md)
 - [장바구니 API 명세](specs/cart-api.md)
+- [주문 API 명세](specs/order-api.md) (초안)
 
 ### `plans/`
 
