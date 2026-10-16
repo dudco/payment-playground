@@ -396,7 +396,7 @@ git commit -m "feat: 장바구니 멱등키로 주문을 만드는 주문 서비
     - `@PostMapping fun place(@CurrentCustomer customerId: String, @RequestHeader("Idempotency-Key") idempotencyKey: String): ResponseEntity<OrderView>` — 키 앞뒤 공백 제거, 비면 `InvalidRequestException`. `created`면 `201`과 `Location: /orders/{orderId}`, 아니면 `200`. 요청 본문 파라미터를 두지 않는다.
     - `@GetMapping("/{orderId}") fun get(@CurrentCustomer customerId: String, @PathVariable orderId: String): OrderView`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 @SpringBootTest
@@ -466,19 +466,19 @@ class OrderControllerTest(
 - `본인 주문을 조회한다`: 주문 후 `get(orderId)` → `200`, `$.orderId`, `$.totalAmount` 15000, `$.lines.length()` 2.
 - `다른 고객의 주문이나 없는 주문은 404 ORDER_NOT_FOUND다`: `get(orderId, "customer-002")`, `get("not-a-uuid")` → `404`, `$.code` `ORDER_NOT_FOUND`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 9/9 실패(컨트롤러 없음) (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderControllerTest'`
 Expected: FAIL (`POST /orders`가 404 — 컨트롤러 없음)
 
-- [ ] **Step 3: Implement `OrderController` per Interfaces**
+- [x] **Step 3: Implement `OrderController` per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes** — 통과: 9/9, 전체 74/74 (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderControllerTest'`
 Expected: PASS (9개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `04f09f2`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/order/OrderController.kt src/test/kotlin/io/github/dudco/paymentplayground/order/OrderControllerTest.kt
