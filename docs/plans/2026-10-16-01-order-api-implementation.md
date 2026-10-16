@@ -77,7 +77,7 @@
 - Produces (`V1__create_orders.sql`):
   - 스펙 3장의 두 테이블. `orders`: `id TEXT PRIMARY KEY`, `idempotency_key TEXT NOT NULL UNIQUE`, `customer_id TEXT NOT NULL`, `status TEXT NOT NULL CHECK (status IN ('CREATED', 'PAID'))`, `total_amount INTEGER NOT NULL CHECK (total_amount >= 0)`, `created_at TEXT NOT NULL`, `updated_at TEXT NOT NULL`. `order_lines`: `id TEXT PRIMARY KEY`, `order_id TEXT NOT NULL REFERENCES orders(id)`, `product_id TEXT NOT NULL`, `product_name TEXT NOT NULL`, `unit_price INTEGER NOT NULL CHECK (unit_price >= 0)`, `quantity INTEGER NOT NULL CHECK (quantity BETWEEN 1 AND 99)`, `line_amount INTEGER NOT NULL CHECK (line_amount = unit_price * quantity)`, `UNIQUE (order_id, product_id)`. 인덱스 `CREATE INDEX idx_order_lines_order_id ON order_lines (order_id)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```kotlin
 class OrderTest {
@@ -140,21 +140,21 @@ class InstantTextConverterTest {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail** — RED 확인: 컴파일 오류 `Unresolved reference 'Order'` (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderTest' --tests 'io.github.dudco.paymentplayground.support.InstantTextConverterTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'Order'`, `Unresolved reference 'InstantTextConverter'`)
 
-- [ ] **Step 3: Implement `InstantTextConverter`, `Order.kt`, and `V1__create_orders.sql` per Interfaces**
+- [x] **Step 3: Implement `InstantTextConverter`, `Order.kt`, and `V1__create_orders.sql` per Interfaces**
 
 엔티티는 기존 `allOpen`·`kotlin("plugin.jpa")` 설정을 그대로 쓴다. 생성 후 바뀌면 안 되는 필드는 `protected set`으로 막는다. 엔티티와 마이그레이션을 같은 커밋에 넣는다. 둘 중 하나만 있으면 `ddl-auto=validate`가 기동을 실패시킨다.
 
-- [ ] **Step 4: Run tests, including the existing context test, to verify they pass**
+- [x] **Step 4: Run tests, including the existing context test, to verify they pass** — 통과: OrderTest 3, InstantTextConverterTest 1, PaymentPlaygroundApplicationTests 4. 전체 48/48 (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderTest' --tests 'io.github.dudco.paymentplayground.support.InstantTextConverterTest' --tests 'io.github.dudco.paymentplayground.PaymentPlaygroundApplicationTests'`
 Expected: PASS (`OrderTest` 3개, `InstantTextConverterTest` 1개, `PaymentPlaygroundApplicationTests` 4개 — Flyway가 V1을 적용하고 `validate`가 통과한다). `Schema-validation: wrong column type` 오류가 나면 해당 `@Column`의 `columnDefinition`이 마이그레이션의 선언 타입과 같은지 확인한다.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `f85309a`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/order src/main/kotlin/io/github/dudco/paymentplayground/support/InstantTextConverter.kt src/main/resources/db/migration/V1__create_orders.sql src/test/kotlin/io/github/dudco/paymentplayground/order/OrderTest.kt src/test/kotlin/io/github/dudco/paymentplayground/support/InstantTextConverterTest.kt
