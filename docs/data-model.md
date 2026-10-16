@@ -11,7 +11,7 @@
 ## 2. 저장소와 관계
 
 ```text
-[코드]   Product (MockProductCatalog, 고정 목록)
+[코드]   Product (FixedProductRepository, 고정 목록)
             ┆ productId로 참조 (FK 없음)
 [Redis]  Cart (cart:{customerId}, JSON, TTL)
             ┆ idempotencyKey로 논리 연결 (FK 없음)

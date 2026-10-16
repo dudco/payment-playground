@@ -1,6 +1,6 @@
 # 장바구니 API 명세
 
-> 상태: 승인됨 · 작성일: 2026-10-13 · 최종 갱신일: 2026-10-14
+> 상태: 승인됨 · 작성일: 2026-10-13 · 최종 갱신일: 2026-10-16 (2장 패키지와 책임을 [코드 컨벤션](../conventions.md)에 맞춤)
 
 > [PRD](../prd.md), [데이터 모델](../data-model.md), [ADR-0003](../adr/0003-cart-in-redis-with-ttl.md), [ADR-0005](../adr/0005-product-api-mock-catalog.md), [ADR-0006](../adr/0006-cart-per-customer.md), [ADR-0007](../adr/0007-checkout-idempotency-key.md)을 바탕으로 한 첫 번째 기능 명세다. 트래픽이 거의 없는 환경을 전제로 하며, 동시성 제어는 넣지 않는다([PRD 8. 알려진 한계](../prd.md#8-알려진-한계)).
 
@@ -17,22 +17,32 @@
 
 ## 2. 패키지와 책임
 
+[코드 컨벤션](../conventions.md)을 따른다.
+
 ```text
 io.github.dudco.paymentplayground
 ├── cart
-│   ├── Cart                 고객 ID, 멱등키, 장바구니 라인(상품별 수량)
-│   ├── CartRepository       저장소 인터페이스
-│   ├── RedisCartRepository  Redis JSON + TTL 구현
-│   ├── CartProperties       payment-playground.cart.* 설정
-│   ├── CartService          상품 확인, 멱등키 발급·유지, 응답 금액 계산
-│   └── CartController       HTTP 요청 검증과 응답 변환
-└── customer
-    ├── CurrentCustomer             컨트롤러 파라미터에 붙이는 애노테이션
-    └── HeaderCurrentCustomerResolver  X-Customer-ID 헤더에서 고객 ID를 꺼내는 임시 구현
+│   ├── controller
+│   │   ├── CartController       헤더·본문 검증, SaveCartRequest → CartLineCommand, CartResult → CartResponse
+│   │   └── CartApi              SaveCartRequest, SaveCartLineRequest, CartResponse, CartLineResponse
+│   ├── service
+│   │   └── CartService          상품 확인, 멱등키 발급·유지, 금액 계산, 삭제(clear). CartLineCommand를 받고 CartResult를 반환
+│   ├── domain
+│   │   └── Cart                 고객 ID, 멱등키, 장바구니 라인(상품별 수량)
+│   └── repository
+│       ├── CartRepository       저장소 인터페이스, StoredCart
+│       ├── RedisCartRepository  Redis JSON + TTL 구현. 저장 형식(JSON 문서)은 이 파일 안의 private 타입
+│       └── CartProperties       payment-playground.cart.* 설정
+├── customer
+│   ├── CurrentCustomer             컨트롤러 파라미터에 붙이는 애노테이션
+│   └── HeaderCurrentCustomerResolver  X-Customer-ID 헤더에서 고객 ID를 꺼내는 임시 구현
+└── support
+    └── IdempotencyKeyGenerator     체크아웃 멱등키 생성(UUID). 장바구니·주문·결제가 공유하는 개념이라 support에 둔다
 ```
 
 - Controller는 고객 ID를 헤더에서 직접 읽지 않고 `@CurrentCustomer customerId: String` 파라미터로 받는다. 인증이 생기면 resolver 구현만 바꾸고 Controller와 Service는 그대로 둔다([ADR-0006](../adr/0006-cart-per-customer.md)).
-- Service는 `ProductCatalog`로 상품을 확인하고, 응답에 상품명·단가·금액을 채운다.
+- Service는 `ProductRepository`로 상품을 확인하고(읽기 전용), 결과에 상품명·단가·금액을 채운다. `Cart`는 서비스 밖으로 나가지 않는다.
+- 주문 기능은 장바구니를 `CartRepository`로 읽고(규칙이 걸리지 않은 순수 읽기), 삭제는 상태 변경이므로 반드시 `CartService.clear(customerId)`를 거친다([코드 컨벤션](../conventions.md) 1.1). "주문할 수 있는 장바구니"에 조건이 생기면 그 조회를 서비스로 옮긴다.
 - Repository는 저장과 TTL만 다룬다. 금액 계산을 하지 않는다.
 
 ## 3. 저장 모델
@@ -58,7 +68,7 @@ io.github.dudco.paymentplayground
 
 - 고객 ID는 `X-Customer-ID` 헤더에서 얻는다(임시). 앞뒤 공백은 제거한다(`" c1 "`과 `"c1"`은 같은 고객). 없거나 공백이면 `400 VALIDATION_ERROR`.
 - 수량은 상품당 1 이상 99 이하다.
-- 상품명·단가는 요청 시점의 `ProductCatalog` 값이다. `lineAmount = unitPrice × quantity`, `totalAmount = Σ lineAmount`.
+- 상품명·단가는 요청 시점의 `ProductRepository` 값이다. `lineAmount = unitPrice × quantity`, `totalAmount = Σ lineAmount`.
 - 저장된 라인 중 카탈로그에 더 이상 없는 상품은 응답의 `lines`와 `totalAmount`에서 제외한다(저장값은 다음 `POST /cart`에서 교체된다).
 - 응답의 `lines`는 `productId` 오름차순이다.
 - `expiresAt`은 Redis TTL로 계산한 만료 시각이다. 장바구니가 없으면 `null`이다.

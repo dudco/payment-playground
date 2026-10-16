@@ -2,6 +2,7 @@
 
 - 상태: 승인됨
 - 일자: 2026-10-13
+- 관계: 코드 이름은 [코드 컨벤션](../conventions.md)에 따라 `ProductCatalog` → `ProductRepository`, `MockProductCatalog` → `FixedProductRepository`로 바뀌었다(2026-10-16). 결정 내용은 그대로다.
 
 ## 맥락
 

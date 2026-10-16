@@ -24,6 +24,15 @@
 
 현재 문서: [주문·결제 데이터 모델](data-model.md)
 
+### `conventions.md`
+
+기능 코드를 계층과 파일로 나누는 규칙, 계층 사이에 주고받는 타입(`Request`·`Command`·`Result`·`Response`)과 이름을 정한다.
+
+- 새 기능 스펙의 "패키지와 책임" 절은 이 규칙을 따른다.
+- 규칙을 바꾸면 기존 코드를 같은 PR에서 맞추거나, 맞추는 계획을 함께 남긴다.
+
+현재 문서: [코드 컨벤션](conventions.md)
+
 ### `adr/`
 
 Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 구현에 영향을 주는 기술적 결정을 짧게 기록한다.
@@ -70,6 +79,7 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 
 - [상품·장바구니 API 구현 계획](plans/2026-10-13-01-cart-api-implementation.md) (완료)
 - [주문 API 구현 계획](plans/2026-10-16-01-order-api-implementation.md) (완료)
+- [계층·파일 컨벤션 리팩터링 계획](plans/2026-10-16-02-layer-conventions-implementation.md) (완료)
 
 ## 새 기능을 추가하는 순서
 

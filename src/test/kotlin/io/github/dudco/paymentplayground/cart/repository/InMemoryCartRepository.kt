@@ -1,0 +1,48 @@
+package io.github.dudco.paymentplayground.cart.repository
+
+import io.github.dudco.paymentplayground.cart.domain.Cart
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+
+/**
+ * 메모리 맵으로 동작하는 테스트용 저장소. `@Component`를 붙이지 않는다.
+ * `save`는 `clock` 기준 30분 뒤를 만료 시각으로 돌려주고 `find`도 같은 값을 돌려준다.
+ */
+class InMemoryCartRepository(private val clock: Clock) : CartRepository {
+	private val carts = mutableMapOf<String, StoredCart>()
+
+	/** `true`면 [delete]가 예외를 던진다. 삭제 실패를 흉내 낼 때 쓴다. */
+	var failOnDelete: Boolean = false
+
+	/** `true`면 [find]가 예외를 던진다. 조회 실패를 흉내 낼 때 쓴다. */
+	var failOnFind: Boolean = false
+
+	override fun find(customerId: String): StoredCart? {
+		if (failOnFind) throw IllegalStateException("장바구니 조회 실패(테스트)")
+		return carts[customerId]
+	}
+
+	override fun save(cart: Cart): Instant {
+		val expiresAt = clock.instant().plus(TTL)
+		carts[cart.customerId] = StoredCart(cart, expiresAt)
+		return expiresAt
+	}
+
+	override fun delete(customerId: String) {
+		if (failOnDelete) throw IllegalStateException("장바구니 삭제 실패(테스트)")
+		carts.remove(customerId)
+	}
+
+	fun contains(customerId: String): Boolean = carts.containsKey(customerId)
+
+	fun clear() {
+		carts.clear()
+		failOnDelete = false
+		failOnFind = false
+	}
+
+	private companion object {
+		val TTL: Duration = Duration.ofMinutes(30)
+	}
+}

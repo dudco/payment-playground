@@ -1,6 +1,6 @@
 # 상품 조회 API 명세
 
-> 상태: 승인됨 · 작성일: 2026-10-13 · 최종 갱신일: 2026-10-14
+> 상태: 승인됨 · 작성일: 2026-10-13 · 최종 갱신일: 2026-10-16 (2장 패키지와 책임을 [코드 컨벤션](../conventions.md)에 맞춤)
 
 > [ADR-0005](../adr/0005-product-api-mock-catalog.md)에 따라 상품은 코드에 고정된 Mock 카탈로그로 제공한다. 장바구니가 상품을 참조하기 위한 최소 기능이다.
 
@@ -13,15 +13,24 @@
 
 ## 2. 패키지와 책임
 
+[코드 컨벤션](../conventions.md)을 따른다.
+
 ```text
 io.github.dudco.paymentplayground.product
-├── Product              상품 값 객체 (id, name, price)
-├── ProductCatalog       상품 조회 인터페이스
-├── MockProductCatalog   코드에 고정된 목록을 가진 구현체 (@Component)
-└── ProductController    조회 API
+├── controller
+│   ├── ProductController       조회 API. 서비스 결과를 ProductResponse로 바꾼다
+│   └── ProductApi              ProductResponse (HTTP 응답)
+├── service
+│   └── ProductService          조회, ProductResult 반환
+├── domain
+│   ├── Product                 상품 도메인 값 (id, name, price)
+│   └── ProductErrors           productNotFound()
+└── repository
+    ├── ProductRepository       상품 조회 저장소 인터페이스
+    └── FixedProductRepository  코드에 고정된 목록을 가진 ProductRepository 구현체 (@Repository)
 ```
 
-다른 기능(장바구니 등)은 `ProductCatalog`만 의존한다. `MockProductCatalog`를 직접 참조하지 않는다.
+다른 기능(장바구니·주문)은 상품을 읽기만 하므로 `ProductRepository`로 읽는다. `FixedProductRepository`를 직접 참조하지 않는다. 판매 상태처럼 상품 규칙이 걸린 조회가 생기면 `ProductService`로 옮긴다([코드 컨벤션](../conventions.md) 1.1).
 
 ## 3. Mock 상품 목록
 
