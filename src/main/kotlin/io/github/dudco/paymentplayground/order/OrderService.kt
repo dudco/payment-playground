@@ -1,5 +1,6 @@
 package io.github.dudco.paymentplayground.order
 
+import io.github.dudco.paymentplayground.cart.CartRepository
 import io.github.dudco.paymentplayground.cart.CartService
 import io.github.dudco.paymentplayground.product.ProductRepository
 import org.slf4j.LoggerFactory
@@ -43,6 +44,7 @@ private fun Order.toResult() = OrderResult(
 @Service
 class OrderService(
 	private val orderRepository: OrderRepository,
+	private val cartRepository: CartRepository,
 	private val cartService: CartService,
 	private val productRepository: ProductRepository,
 	private val transactionTemplate: TransactionTemplate,
@@ -65,11 +67,11 @@ class OrderService(
 			return PlaceOrderResult(existing, false)
 		}
 
-		val cart = cartService.findForCheckout(customerId) ?: throw cartNotFound()
+		val cart = cartRepository.find(customerId)?.cart ?: throw cartNotFound()
 		if (cart.idempotencyKey != idempotencyKey) throw idempotencyKeyMismatch()
 
-		val lines = cart.lines.mapNotNull { line ->
-			productRepository.findById(line.productId)?.let { OrderLine(it.id, it.name, it.price, line.quantity) }
+		val lines = cart.lines.mapNotNull { (productId, quantity) ->
+			productRepository.findById(productId)?.let { OrderLine(it.id, it.name, it.price, quantity) }
 		}
 		if (lines.isEmpty()) throw cartNotFound()
 
@@ -100,7 +102,7 @@ class OrderService(
 	/** 재호출 때 남은 장바구니를 정리한다. 새 키로 다시 생긴 장바구니는 건드리지 않는다. 실패해도 응답에 영향이 없다. */
 	private fun cleanUpCartIfSameKey(customerId: String, idempotencyKey: String, orderId: String) {
 		try {
-			if (cartService.findForCheckout(customerId)?.idempotencyKey == idempotencyKey) {
+			if (cartRepository.find(customerId)?.cart?.idempotencyKey == idempotencyKey) {
 				cartService.clear(customerId)
 			}
 		} catch (e: Exception) {
