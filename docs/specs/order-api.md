@@ -1,6 +1,6 @@
 # 주문 API 명세
 
-> 상태: 승인됨 · 작성일: 2026-10-14 · 최종 갱신일: 2026-10-16
+> 상태: 승인됨 · 작성일: 2026-10-14 · 최종 갱신일: 2026-10-16 (2장 패키지와 책임을 [코드 컨벤션](../conventions.md)에 맞춤)
 
 > [PRD](../prd.md), [데이터 모델](../data-model.md), [장바구니 API 명세](cart-api.md), [ADR-0003](../adr/0003-cart-in-redis-with-ttl.md), [ADR-0004](../adr/0004-flyway-schema-migration.md), [ADR-0007](../adr/0007-checkout-idempotency-key.md)을 바탕으로 한 두 번째 기능 명세다. 트래픽이 거의 없는 환경을 전제로 하며, 동시성 제어는 넣지 않는다([PRD 8. 알려진 한계](../prd.md#8-알려진-한계)).
 
@@ -19,19 +19,25 @@
 
 ## 2. 패키지와 책임
 
+[코드 컨벤션](../conventions.md)을 따른다.
+
 ```text
 io.github.dudco.paymentplayground.order
+├── OrderController    헤더 검증, PlaceOrderResult → 201/200 + OrderResponse
+├── OrderApi           OrderResponse, OrderLineResponse
+├── OrderService       장바구니 확인, 스냅샷 생성, 멱등 재호출 처리, 커밋 후 장바구니 삭제.
+│                      OrderResult, OrderLineResult, PlaceOrderResult(order, created) 반환
 ├── Order              주문 엔티티 (@Table(name = "orders")), OrderLine 목록을 가진다
 ├── OrderLine          주문 라인 엔티티 (@Table(name = "order_lines")), 생성 후 불변
 ├── OrderStatus        CREATED (결제 스펙에서 PAID 추가)
 ├── OrderRepository    Spring Data JPA. findByIdempotencyKey, findById
-├── OrderService       장바구니 확인, 스냅샷 생성, 멱등 재호출 처리, 커밋 후 장바구니 삭제
-└── OrderController    헤더 검증과 응답 변환
+└── OrderErrors        cartNotFound(), orderNotFound(), idempotencyKeyMismatch()
 ```
 
 - 의존 방향은 `order → cart`, `order → product`다. `OrderService`는 `CartRepository`로 장바구니를 읽고 지우며, `ProductCatalog`로 상품명·단가를 얻는다. `cart` 패키지는 `order`를 알지 못한다.
 - 고객 ID는 장바구니와 같이 `@CurrentCustomer customerId: String`으로 받는다([ADR-0006](../adr/0006-cart-per-customer.md)).
-- 멱등키는 Controller에서 `Idempotency-Key` 요청 헤더로 받는다([ADR-0007](../adr/0007-checkout-idempotency-key.md#키-전달-방식)). 공통 필터·인터셉터로 옮기는 것은 이후 단계에서 실험한다.
+- 멱등키는 Controller에서 `Idempotency-Key` 요청 헤더로 받아 앞뒤 공백을 제거한 값을 서비스에 넘긴다([ADR-0007](../adr/0007-checkout-idempotency-key.md#키-전달-방식)). 공통 필터·인터셉터로 옮기는 것은 이후 단계에서 실험한다.
+- `Order` 엔티티는 서비스 밖으로 나가지 않는다. 지연 로딩되는 `lines`는 트랜잭션 안에서 `OrderResult`로 옮긴다.
 - 현재 시각은 주입받은 `Clock`에서 얻는다.
 
 ## 3. 저장 모델
