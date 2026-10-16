@@ -1,6 +1,6 @@
 package io.github.dudco.paymentplayground.cart
 
-import io.github.dudco.paymentplayground.product.ProductService
+import io.github.dudco.paymentplayground.product.ProductRepository
 import io.github.dudco.paymentplayground.product.productNotFound
 import io.github.dudco.paymentplayground.support.IdempotencyKeyGenerator
 import io.github.dudco.paymentplayground.support.InvalidRequestException
@@ -44,7 +44,7 @@ data class CheckoutCartLineResult(val productId: String, val quantity: Int)
 @Service
 class CartService(
 	private val cartRepository: CartRepository,
-	private val productService: ProductService,
+	private val productRepository: ProductRepository,
 	private val keyGenerator: IdempotencyKeyGenerator,
 	private val clock: Clock,
 ) {
@@ -58,7 +58,7 @@ class CartService(
 		if (productIds.toSet().size != productIds.size) {
 			throw InvalidRequestException("같은 상품이 두 번 이상 있습니다.")
 		}
-		if (!productService.findByIds(productIds).keys.containsAll(productIds)) {
+		if (productIds.any { productRepository.findById(it) == null }) {
 			throw productNotFound()
 		}
 		if (lines.isEmpty()) {
@@ -93,10 +93,9 @@ class CartService(
 
 	/** 카탈로그에서 사라진 상품의 라인은 건너뛰어 응답과 총액에 포함하지 않는다. */
 	private fun toResult(cart: Cart, expiresAt: Instant?): CartResult {
-		val products = productService.findByIds(cart.lines.keys)
 		val lineResults = cart.lines.mapNotNull { (productId, quantity) ->
-			val product = products[productId] ?: return@mapNotNull null
-			CartLineResult(product.productId, product.name, product.price, quantity, product.price * quantity)
+			val product = productRepository.findById(productId) ?: return@mapNotNull null
+			CartLineResult(product.id, product.name, product.price, quantity, product.price * quantity)
 		}
 		return CartResult(cart.customerId, cart.idempotencyKey, lineResults, lineResults.sumOf { it.lineAmount }, expiresAt)
 	}

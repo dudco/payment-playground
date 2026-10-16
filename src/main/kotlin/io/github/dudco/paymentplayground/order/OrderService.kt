@@ -1,7 +1,7 @@
 package io.github.dudco.paymentplayground.order
 
 import io.github.dudco.paymentplayground.cart.CartService
-import io.github.dudco.paymentplayground.product.ProductService
+import io.github.dudco.paymentplayground.product.ProductRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -44,7 +44,7 @@ private fun Order.toResult() = OrderResult(
 class OrderService(
 	private val orderRepository: OrderRepository,
 	private val cartService: CartService,
-	private val productService: ProductService,
+	private val productRepository: ProductRepository,
 	private val transactionTemplate: TransactionTemplate,
 	private val clock: Clock,
 ) {
@@ -68,9 +68,8 @@ class OrderService(
 		val cart = cartService.findForCheckout(customerId) ?: throw cartNotFound()
 		if (cart.idempotencyKey != idempotencyKey) throw idempotencyKeyMismatch()
 
-		val products = productService.findByIds(cart.lines.map { it.productId })
 		val lines = cart.lines.mapNotNull { line ->
-			products[line.productId]?.let { OrderLine(it.productId, it.name, it.price, line.quantity) }
+			productRepository.findById(line.productId)?.let { OrderLine(it.id, it.name, it.price, line.quantity) }
 		}
 		if (lines.isEmpty()) throw cartNotFound()
 
