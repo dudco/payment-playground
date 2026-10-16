@@ -22,8 +22,8 @@ product ◀── cart ◀── order ◀── (payment)
 
 - 방향은 비즈니스 흐름으로 정한다. 흐름의 **뒤 단계가 앞 단계에 의존**한다(주문은 장바구니를 알지만, 장바구니는 주문을 모른다).
 - 순환을 막는 이유: 순환이 생기면 두 기능을 따로 바꾸거나 테스트할 수 없고, Spring 빈 순환 참조가 생기며, 이후 기능을 모듈·서비스로 떼어 내는 실험을 할 수 없다.
-- 다른 기능에서 쓸 수 있는 것: 그 기능의 **서비스**, **도메인 모델**, **저장소 인터페이스**(예: `CartRepository`, `ProductCatalog`).
-- 쓰지 않는 것: 그 기능의 컨트롤러, HTTP 계약 타입(`Request`·`Response`), 저장소 **구현 클래스**(예: `RedisCartRepository`, `MockProductCatalog`).
+- 다른 기능에서 쓸 수 있는 것: 그 기능의 **서비스**, **도메인 모델**, **저장소 인터페이스**(예: `CartRepository`, `ProductRepository`).
+- 쓰지 않는 것: 그 기능의 컨트롤러, HTTP 계약 타입(`Request`·`Response`), 저장소 **구현 클래스**(예: `RedisCartRepository`, `FixedProductRepository`).
 
 ### 1.2 앞 단계가 뒤 단계의 정보가 필요할 때
 
