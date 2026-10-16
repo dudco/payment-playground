@@ -37,8 +37,8 @@ io.github.dudco.paymentplayground
 ```
 
 - Controller는 고객 ID를 헤더에서 직접 읽지 않고 `@CurrentCustomer customerId: String` 파라미터로 받는다. 인증이 생기면 resolver 구현만 바꾸고 Controller와 Service는 그대로 둔다([ADR-0006](../adr/0006-cart-per-customer.md)).
-- Service는 `ProductService`로 상품을 확인하고, 결과에 상품명·단가·금액을 채운다. `Cart`는 서비스 밖으로 나가지 않는다.
-- 주문 기능에는 `findForCheckout(customerId): CheckoutCartResult?`(멱등키와 라인)와 `clear(customerId)`를 제공한다. 주문은 `CartRepository`·`Cart`를 직접 쓰지 않는다.
+- Service는 `ProductRepository`로 상품을 확인하고(읽기 전용), 결과에 상품명·단가·금액을 채운다. `Cart`는 서비스 밖으로 나가지 않는다.
+- 주문 기능에는 `findForCheckout(customerId): CheckoutCartResult?`(멱등키와 `productId` 오름차순 라인, 가격 계산 없음)와 `clear(customerId)`를 제공한다. 장바구니 삭제는 상태 변경이므로 주문은 반드시 `clear`를 거친다. 조회도 주문에 넘길 모양이 정해져 있어 `findForCheckout`을 쓴다.
 - Repository는 저장과 TTL만 다룬다. 금액 계산을 하지 않는다.
 
 ## 3. 저장 모델
@@ -64,7 +64,7 @@ io.github.dudco.paymentplayground
 
 - 고객 ID는 `X-Customer-ID` 헤더에서 얻는다(임시). 앞뒤 공백은 제거한다(`" c1 "`과 `"c1"`은 같은 고객). 없거나 공백이면 `400 VALIDATION_ERROR`.
 - 수량은 상품당 1 이상 99 이하다.
-- 상품명·단가는 요청 시점에 `ProductService`가 돌려준 값이다. `lineAmount = unitPrice × quantity`, `totalAmount = Σ lineAmount`.
+- 상품명·단가는 요청 시점의 `ProductRepository` 값이다. `lineAmount = unitPrice × quantity`, `totalAmount = Σ lineAmount`.
 - 저장된 라인 중 카탈로그에 더 이상 없는 상품은 응답의 `lines`와 `totalAmount`에서 제외한다(저장값은 다음 `POST /cart`에서 교체된다).
 - 응답의 `lines`는 `productId` 오름차순이다.
 - `expiresAt`은 Redis TTL로 계산한 만료 시각이다. 장바구니가 없으면 `null`이다.
