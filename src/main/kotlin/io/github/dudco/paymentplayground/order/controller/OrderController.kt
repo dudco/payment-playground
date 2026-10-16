@@ -1,8 +1,7 @@
 package io.github.dudco.paymentplayground.order.controller
 
 import io.github.dudco.paymentplayground.customer.CurrentCustomer
-import io.github.dudco.paymentplayground.order.service.GetOrderService
-import io.github.dudco.paymentplayground.order.service.PlaceOrderService
+import io.github.dudco.paymentplayground.order.service.OrderService
 import io.github.dudco.paymentplayground.support.InvalidRequestException
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -19,10 +18,7 @@ import java.net.URI
  */
 @RestController
 @RequestMapping("/orders")
-class OrderController(
-	private val placeOrderService: PlaceOrderService,
-	private val getOrderService: GetOrderService,
-) {
+class OrderController(private val orderService: OrderService) {
 
 	/** 새로 만들면 201과 Location, 같은 키의 재호출이면 200으로 기존 주문을 돌려준다. */
 	@PostMapping
@@ -33,7 +29,7 @@ class OrderController(
 		val key = idempotencyKey.trim()
 		if (key.isEmpty()) throw InvalidRequestException("Idempotency-Key 헤더가 비어 있습니다.")
 
-		val result = placeOrderService.place(customerId, key)
+		val result = orderService.place(customerId, key)
 		val body = OrderResponse.from(result.order)
 		return if (result.created) {
 			ResponseEntity.created(URI.create("/orders/${body.orderId}")).body(body)
@@ -44,5 +40,5 @@ class OrderController(
 
 	@GetMapping("/{orderId}")
 	fun get(@CurrentCustomer customerId: String, @PathVariable orderId: String): OrderResponse =
-		OrderResponse.from(getOrderService.get(customerId, orderId))
+		OrderResponse.from(orderService.get(customerId, orderId))
 }

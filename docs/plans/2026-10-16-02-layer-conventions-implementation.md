@@ -436,3 +436,9 @@ Task 9 뒤에 정리했다: `findForCheckout`이 하는 일은 필요한 필드�
 - [x] **Step 2:** 서비스 분리 구현 → `./gradlew test` Expected: PASS, 80개 — 통과 80/80 (2026-10-16)
 - [x] **Step 3:** (`5555dd9`) 커밋 `refactor: 주문 서비스를 PlaceOrderService·GetOrderService로 분리`
 - [x] **Step 4:** 상품·장바구니·주문 스펙 2장의 패키지 트리를 새 구조로 고친다. 커밋 `docs: 스펙의 패키지 구조를 하위 패키지 구성에 맞춤`
+
+### Task 12 철회 (2026-10-16)
+
+분리 근거였던 "생성자 의존성 5개 초과"는 컨벤션 4장에서 `Clock`·`TransactionTemplate`을 세지 않기로 하면서 사라졌다(`OrderService`는 의존성 4개, public 메서드 2개). 4장의 "서비스 하나로 시작하고 조건에 걸리면 나눈다"에 따라 `PlaceOrderService`·`GetOrderService`·`OrderResult.kt`와 두 테스트 클래스를 다시 `OrderService`·`OrderServiceTest`로 합쳤다. 코드와 테스트는 Task 11 직후(`8930955`)와 같다. 하위 패키지 구조와 4장의 의존성 세는 기준은 유지한다.
+
+- [x] 합치기 후 `./gradlew test` → 80/80 통과, 주문 스펙 패키지 트리 복구 (2026-10-16)

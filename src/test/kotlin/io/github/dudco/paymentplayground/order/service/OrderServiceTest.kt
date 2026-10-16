@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -25,8 +26,8 @@ import kotlin.test.assertTrue
 
 @SpringBootTest
 @Import(OrderTestConfiguration::class)
-class PlaceOrderServiceTest(
-	@Autowired private val service: PlaceOrderService,
+class OrderServiceTest(
+	@Autowired private val service: OrderService,
 	@Autowired private val orderRepository: OrderRepository,
 	@Autowired private val carts: InMemoryCartRepository,
 	@Autowired private val catalog: MutableProductRepository,
@@ -206,5 +207,32 @@ class PlaceOrderServiceTest(
 		assertFalse(second.created)
 		assertEquals(first.order, second.order)
 		assertEquals(1, orderRepository.count())
+	}
+
+	@Test
+	fun `주문 후 가격이 바뀌어도 조회는 주문 시점 상품명·단가다`() {
+		carts.saveDefaultCart()
+		val placed = service.place("customer-001", "key-1").order
+		catalog.put(Product("americano", "아이스 아메리카노", 9999))
+
+		val found = service.get("customer-001", placed.orderId)
+
+		assertEquals(OrderLineResult("americano", "아메리카노", 4500, 2, 9000), found.lines.first { it.productId == "americano" })
+		assertEquals(15000L, found.totalAmount)
+	}
+
+	@Test
+	fun `없는 주문, 다른 고객의 주문, UUID가 아닌 ID는 ORDER_NOT_FOUND다`() {
+		carts.saveDefaultCart()
+		val placed = service.place("customer-001", "key-1").order
+
+		listOf(
+			"customer-002" to placed.orderId,
+			"customer-001" to UUID.randomUUID().toString(),
+			"customer-001" to "not-a-uuid",
+		).forEach { (customerId, orderId) ->
+			val e = assertFailsWith<NotFoundException> { service.get(customerId, orderId) }
+			assertEquals("ORDER_NOT_FOUND", e.code)
+		}
 	}
 }
