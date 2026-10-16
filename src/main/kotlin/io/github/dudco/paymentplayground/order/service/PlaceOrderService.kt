@@ -4,52 +4,21 @@ import io.github.dudco.paymentplayground.cart.repository.CartRepository
 import io.github.dudco.paymentplayground.cart.service.CartService
 import io.github.dudco.paymentplayground.order.domain.Order
 import io.github.dudco.paymentplayground.order.domain.OrderLine
-import io.github.dudco.paymentplayground.order.domain.OrderStatus
 import io.github.dudco.paymentplayground.order.domain.cartNotFound
 import io.github.dudco.paymentplayground.order.domain.idempotencyKeyMismatch
-import io.github.dudco.paymentplayground.order.domain.orderNotFound
 import io.github.dudco.paymentplayground.order.repository.OrderRepository
 import io.github.dudco.paymentplayground.product.repository.ProductRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Clock
-import java.time.Instant
-
-data class OrderLineResult(
-	val productId: String,
-	val productName: String,
-	val unitPrice: Long,
-	val quantity: Int,
-	val lineAmount: Long,
-)
-
-data class OrderResult(
-	val orderId: String,
-	val customerId: String,
-	val idempotencyKey: String,
-	val status: OrderStatus,
-	val lines: List<OrderLineResult>,
-	val totalAmount: Long,
-	val createdAt: Instant,
-)
 
 /** [created]가 `false`면 같은 멱등키로 이미 만들어진 주문을 다시 돌려준 것이다. */
 data class PlaceOrderResult(val order: OrderResult, val created: Boolean)
 
-private fun Order.toResult() = OrderResult(
-	orderId = checkNotNull(id),
-	customerId = customerId,
-	idempotencyKey = idempotencyKey,
-	status = status,
-	lines = lines.map { OrderLineResult(it.productId, it.productName, it.unitPrice, it.quantity, it.lineAmount) },
-	totalAmount = totalAmount,
-	createdAt = createdAt,
-)
-
+/** 장바구니로 주문을 만든다(주문 스펙 5.1). */
 @Service
-class OrderService(
+class PlaceOrderService(
 	private val orderRepository: OrderRepository,
 	private val cartRepository: CartRepository,
 	private val cartService: CartService,
@@ -90,13 +59,6 @@ class OrderService(
 		return PlaceOrderResult(result, true)
 	}
 
-	@Transactional(readOnly = true)
-	fun get(customerId: String, orderId: String): OrderResult {
-		val order = orderRepository.findById(orderId).orElse(null)
-		if (order == null || order.customerId != customerId) throw orderNotFound()
-		return order.toResult()
-	}
-
 	/** 주문은 이미 확정됐으므로 장바구니 삭제 실패는 로그만 남긴다. 장바구니는 TTL로 사라진다. */
 	private fun deleteCartQuietly(customerId: String, orderId: String) {
 		try {
@@ -118,6 +80,6 @@ class OrderService(
 	}
 
 	private companion object {
-		val log = LoggerFactory.getLogger(OrderService::class.java)
+		val log = LoggerFactory.getLogger(PlaceOrderService::class.java)
 	}
 }
