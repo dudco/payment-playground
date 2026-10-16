@@ -1,15 +1,12 @@
 package io.github.dudco.paymentplayground.order.service
 
-import io.github.dudco.paymentplayground.cart.domain.Cart
 import io.github.dudco.paymentplayground.cart.repository.InMemoryCartRepository
 import io.github.dudco.paymentplayground.order.ORDER_TEST_NOW
 import io.github.dudco.paymentplayground.order.OrderTestConfiguration
-import io.github.dudco.paymentplayground.order.domain.OrderStatus
 import io.github.dudco.paymentplayground.order.repository.OrderRepository
 import io.github.dudco.paymentplayground.order.saveDefaultCart
 import io.github.dudco.paymentplayground.product.domain.Product
 import io.github.dudco.paymentplayground.product.repository.MutableProductRepository
-import io.github.dudco.paymentplayground.support.ConflictException
 import io.github.dudco.paymentplayground.support.DatabaseCleaner
 import io.github.dudco.paymentplayground.support.MutableClock
 import io.github.dudco.paymentplayground.support.NotFoundException
@@ -21,8 +18,6 @@ import org.springframework.context.annotation.Import
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 @SpringBootTest
 @Import(OrderTestConfiguration::class)
