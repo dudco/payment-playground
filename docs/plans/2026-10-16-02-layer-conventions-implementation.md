@@ -344,25 +344,25 @@ git commit -m "refactor: 장바구니·주문이 상품을 ProductService로 읽
   - `fun clear(customerId: String)` — 장바구니를 지운다(빈 장바구니 저장과 같은 효과, 응답 없음).
 - `OrderService(orderRepository, cartService: CartService, productService, transactionTemplate, clock)`: `CartRepository`·`Cart`·`StoredCart` 대신 위 두 메서드를 쓴다. 재호출 정리(`cleanUpCartIfSameKey`)와 커밋 후 삭제(`deleteCartQuietly`)의 실패 무시 범위·순서는 그대로다.
 
-- [ ] **Step 1: Write the failing tests** (`CartServiceTest`)
+- [x] **Step 1: Write the failing tests** (`CartServiceTest`)
 
 - `주문용 조회는 멱등키와 상품 ID 순 라인을 돌려준다`: `cake` 1·`americano` 2 저장 → `findForCheckout`이 `CheckoutCartResult("key-1", listOf(CheckoutCartLineResult("americano", 2), CheckoutCartLineResult("cake", 1)))`.
 - `장바구니가 없으면 주문용 조회는 null이다`: `assertNull(service.findForCheckout("customer-001"))`.
 - `clear는 장바구니를 지운다`: 저장 → `clear` → `assertFalse(repository.contains("customer-001"))`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 컴파일 오류 `Unresolved reference 'CheckoutCartResult'` (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartServiceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'findForCheckout'`)
 
-- [ ] **Step 3: Implement the two methods, then switch `OrderService` to `CartService`**
+- [x] **Step 3: Implement the two methods, then switch `OrderService` to `CartService`**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests** — 통과: 전체 83/83, order에서 CartRepository·StoredCart·Cart 참조 없음 (2026-10-16)
 
 Run: `./gradlew test`
 Expected: PASS, 83개. 주문 서비스 테스트(장바구니 조회·삭제 실패 재현 포함)는 수정 없이 통과한다. `grep -rnE "CartRepository|StoredCart|\bCart\b" src/main/kotlin/io/github/dudco/paymentplayground/order`가 결과 없음.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `3ff2e51`
 
 ```bash
 git add -A src
@@ -373,6 +373,6 @@ git commit -m "refactor: 주문이 장바구니를 CartService로 조회·삭제
 
 ### Task 8: 검증과 문서 정리
 
-- [ ] **Step 1:** Task 5 Step 1·2의 확인을 다시 실행하고, 추가로 `grep -rn "import io.github.dudco.paymentplayground.cart.CartRepository\|import io.github.dudco.paymentplayground.product.ProductRepository" src/main`이 각 기능 자기 패키지 밖에서 결과 없음을 확인한다.
-- [ ] **Step 2:** `./gradlew test` → 83개 통과.
-- [ ] **Step 3:** 스펙의 의존 설명을 고친다: 상품 스펙 2장 "다른 기능은 `ProductService`만 의존한다", 장바구니 스펙 2·4장의 상품 조회 주체를 `ProductService`로, 주문 스펙 1·2·5.1장의 `CartRepository`·`ProductRepository`를 `CartService`·`ProductService`로. 커밋 `docs: 기능 사이 접근을 서비스로 한정한 내용을 스펙에 반영`.
+- [x] **Step 1:** (확인: 세 검색 모두 결과 없음, 컨트롤러 테스트 단언 변경 없음) Task 5 Step 1·2의 확인을 다시 실행하고, 추가로 `grep -rn "import io.github.dudco.paymentplayground.cart.CartRepository\|import io.github.dudco.paymentplayground.product.ProductRepository" src/main`이 각 기능 자기 패키지 밖에서 결과 없음을 확인한다.
+- [x] **Step 2:** (통과 83/83) `./gradlew test` → 83개 통과.
+- [x] **Step 3:** 스펙의 의존 설명을 고친다: 상품 스펙 2장 "다른 기능은 `ProductService`만 의존한다", 장바구니 스펙 2·4장의 상품 조회 주체를 `ProductService`로, 주문 스펙 1·2·5.1장의 `CartRepository`·`ProductRepository`를 `CartService`·`ProductService`로. 커밋 `docs: 기능 사이 접근을 서비스로 한정한 내용을 스펙에 반영`.

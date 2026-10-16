@@ -11,7 +11,7 @@
 | `POST` | `/orders` | 현재 고객의 장바구니로 주문 생성. 같은 멱등키 재호출은 기존 주문 반환 |
 | `GET` | `/orders/{orderId}` | 현재 고객의 주문 한 건 조회 |
 
-주문은 장바구니에서만 만든다. 요청 본문으로 주문 라인을 받지 않는다. 주문의 상품·수량은 요청 시점에 Redis에 저장된 장바구니, 상품명·단가는 요청 시점의 `ProductRepository` 값으로 정해지고 이후 바뀌지 않는다(스냅샷).
+주문은 장바구니에서만 만든다. 요청 본문으로 주문 라인을 받지 않는다. 주문의 상품·수량은 요청 시점에 Redis에 저장된 장바구니, 상품명·단가는 요청 시점에 `ProductService`가 돌려준 값으로 정해지고 이후 바뀌지 않는다(스냅샷).
 
 범위 밖: 결제(다음 스펙), 주문 취소, 주문 목록 조회, 재고 차감, 쿠폰·할인, 동시 요청 제어.
 
@@ -34,7 +34,7 @@ io.github.dudco.paymentplayground.order
 └── OrderErrors        cartNotFound(), orderNotFound(), idempotencyKeyMismatch()
 ```
 
-- 의존 방향은 `order → cart`, `order → product`다. `OrderService`는 `CartRepository`로 장바구니를 읽고 지우며, `ProductRepository`로 상품명·단가를 얻는다. `cart` 패키지는 `order`를 알지 못한다.
+- 의존 방향은 `order → cart`, `order → product`다. `OrderService`는 `CartService`(`findForCheckout`, `clear`)로 장바구니를 읽고 지우며, `ProductService`(`findByIds`)로 상품명·단가를 얻는다. `cart` 패키지는 `order`를 알지 못한다.
 - 고객 ID는 장바구니와 같이 `@CurrentCustomer customerId: String`으로 받는다([ADR-0006](../adr/0006-cart-per-customer.md)).
 - 멱등키는 Controller에서 `Idempotency-Key` 요청 헤더로 받아 앞뒤 공백을 제거한 값을 서비스에 넘긴다([ADR-0007](../adr/0007-checkout-idempotency-key.md#키-전달-방식)). 공통 필터·인터셉터로 옮기는 것은 이후 단계에서 실험한다.
 - `Order` 엔티티는 서비스 밖으로 나가지 않는다. 지연 로딩되는 `lines`는 트랜잭션 안에서 `OrderResult`로 옮긴다.
@@ -124,7 +124,7 @@ Idempotency-Key: 6f1c2a52-6c0e-4c55-9a43-6a6f0f6a8f10
    - 있지만 다른 고객의 주문이면 `409 IDEMPOTENCY_KEY_MISMATCH`. 다른 고객 주문의 존재를 드러내지 않도록 아래 4단계와 같은 코드·메시지를 쓴다.
 3. 현재 고객의 장바구니를 읽는다. 없으면(비었거나 TTL 만료) `404 CART_NOT_FOUND`.
 4. 장바구니의 `idempotencyKey`가 요청 키와 다르면 `409 IDEMPOTENCY_KEY_MISMATCH`. 주문 화면에 머무는 동안 장바구니가 만료되었다가 다시 만들어진 경우 등이며, 클라이언트는 `GET /cart`로 새 키와 내용을 확인한 뒤 다시 요청한다.
-5. 장바구니 라인마다 `ProductRepository`에서 상품명·단가를 얻어 주문 라인을 만든다. 카탈로그에 없는 상품의 라인은 `GET /cart` 응답과 같이 제외한다. 남는 라인이 없으면 `404 CART_NOT_FOUND`.
+5. 장바구니 라인의 상품을 `ProductService`에서 한 번에 읽어 상품명·단가를 얻고 주문 라인을 만든다. 카탈로그에 없는 상품의 라인은 `GET /cart` 응답과 같이 제외한다. 남는 라인이 없으면 `404 CART_NOT_FOUND`.
 6. 하나의 DB 트랜잭션에서 `orders`(상태 `CREATED`) 한 행과 `order_lines`를 저장한다.
 7. 커밋이 끝난 뒤 장바구니를 삭제한다(`DEL cart:{customerId}`). 삭제가 실패해도 주문은 이미 확정되었으므로 경고 로그만 남기고 성공 응답을 반환한다. 커밋이 실패하면 장바구니를 지우지 않는다.
 8. `201 Created`, `Location: /orders/{orderId}`와 주문 본문을 반환한다.

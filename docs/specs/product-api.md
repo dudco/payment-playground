@@ -26,7 +26,7 @@ io.github.dudco.paymentplayground.product
 └── ProductErrors           productNotFound()
 ```
 
-다른 기능(장바구니 등)은 `ProductRepository`만 의존한다. `FixedProductRepository`를 직접 참조하지 않는다.
+다른 기능(장바구니·주문)은 `ProductService`로만 상품을 읽는다(`findByIds`로 여러 상품을 한 번에 읽고, 없는 ID는 결과에서 빠진다). `ProductRepository`·`Product`는 상품 패키지 밖에서 쓰지 않는다([코드 컨벤션](../conventions.md) 1.1).
 
 ## 3. Mock 상품 목록
 
