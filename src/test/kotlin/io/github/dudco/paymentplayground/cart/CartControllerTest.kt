@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath
 import io.github.dudco.paymentplayground.customer.CustomerWebConfig
 import io.github.dudco.paymentplayground.customer.HeaderCurrentCustomerResolver
 import io.github.dudco.paymentplayground.product.FixedProductRepository
+import io.github.dudco.paymentplayground.product.ProductService
 import org.hamcrest.Matchers.contains
 import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.BeforeEach
@@ -33,7 +34,7 @@ import io.github.dudco.paymentplayground.support.IdempotencyKeyGenerator
  */
 @WebMvcTest(controllers = [CartController::class])
 @Import(
-	CartService::class, FixedProductRepository::class, CustomerWebConfig::class, HeaderCurrentCustomerResolver::class,
+	CartService::class, ProductService::class, FixedProductRepository::class, CustomerWebConfig::class, HeaderCurrentCustomerResolver::class,
 	CartControllerTest.Fixtures::class,
 )
 class CartControllerTest(

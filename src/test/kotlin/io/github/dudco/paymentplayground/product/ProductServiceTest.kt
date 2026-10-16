@@ -21,4 +21,13 @@ class ProductServiceTest {
 		assertEquals(ProductResult("cake", "케이크", 6000), service.get("cake"))
 		assertEquals("PRODUCT_NOT_FOUND", assertFailsWith<NotFoundException> { service.get("unknown") }.code)
 	}
+
+	@Test
+	fun `여러 상품을 ID로 찾고 없는 ID는 결과에서 빠진다`() {
+		val results = service.findByIds(listOf("cake", "unknown", "americano"))
+
+		assertEquals(setOf("cake", "americano"), results.keys)
+		assertEquals(ProductResult("cake", "케이크", 6000), results["cake"])
+		assertEquals(emptyMap(), service.findByIds(emptyList()))
+	}
 }
