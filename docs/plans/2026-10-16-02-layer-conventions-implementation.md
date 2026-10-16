@@ -220,23 +220,23 @@ git commit -m "refactor: 장바구니 Redis 저장 형식을 RedisCartRepository
   - `OrderApi.kt`: `data class OrderLineResponse(val productId: String, val productName: String, val unitPrice: Long, val quantity: Int, val lineAmount: Long)`, `data class OrderResponse(val orderId: String, val customerId: String, val idempotencyKey: String, val status: String, val lines: List<OrderLineResponse>, val totalAmount: Long, val createdAt: Instant)` — `status`는 `result.status.name`(Review Focus 3, 컨트롤러가 도메인 enum을 알지 않게 한다). `companion object { fun from(result: OrderResult): OrderResponse }`.
   - `OrderController`: `place`는 `ResponseEntity<OrderResponse>`(201 + `Location: /orders/{orderId}` / 200 판단은 그대로), `get`은 `OrderResponse`.
 
-- [ ] **Step 1: Update the service test to the new types (failing)**
+- [x] **Step 1: Update the service test to the new types (failing)**
 
 `OrderServiceTest`의 `OrderLineView`를 `OrderLineResult`로 바꾼다. 단언 값은 그대로 둔다.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 컴파일 오류 `Unresolved reference 'OrderLineResult'` (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderServiceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'OrderLineResult'`)
 
-- [ ] **Step 3: Implement per Interfaces**
+- [x] **Step 3: Implement per Interfaces**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests** — 통과: 전체 79/79, OrderControllerTest 단언 변경 없음 (2026-10-16)
 
 Run: `./gradlew test`
 Expected: PASS, 79개. `OrderControllerTest`의 단언(`$.status` `"CREATED"`, `$.createdAt`, `Location`)은 수정하지 않았다.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `d62aa1b`
 
 ```bash
 git add -A src
