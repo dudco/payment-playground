@@ -174,7 +174,7 @@ git commit -m "feat: 주문 엔티티와 주문 테이블 마이그레이션 추
 - Produces:
   - `interface OrderRepository : JpaRepository<Order, String> { fun findByIdempotencyKey(idempotencyKey: String): Order? }` — Task 3이 사용한다.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 @SpringBootTest
@@ -232,19 +232,19 @@ class OrderPersistenceTest(
 
 `order()`는 Task 1 테스트와 같은 `key-1`/`customer-001`/`cake` 1·`americano` 2 주문(라인을 `cake` 먼저 넣어 Review Focus 5를 검증)을 만든다. `insertOrder(id, key, status = "CREATED")`는 `jdbc.update`로 `orders`에 `customer-001`, 총액 `0`, 시각 `2026-10-14T03:10:00Z` 행을 넣는다. `insertLine(id, orderId, unitPrice, quantity, lineAmount)`은 상품 `cake`/`케이크` 라인을 넣는다(`l4`와 `l5`는 같은 `(order_id, product_id)`라 `l5`가 unique 위반). sqlite-jdbc 예외는 Spring이 `DataIntegrityViolationException`이 아닌 다른 `DataAccessException` 하위 타입으로 바꿀 수 있으므로 상위 타입으로 단언한다.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 컴파일 오류 `Unresolved reference 'OrderRepository'` (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderPersistenceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'OrderRepository'`)
 
-- [ ] **Step 3: Implement `OrderRepository` per Interfaces**
+- [x] **Step 3: Implement `OrderRepository` per Interfaces**
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes** — 통과: 3/3, 전체 51/51. 리뷰 후 Review Focus 5 보강 테스트(JDBC로 역순 저장 → 저장소 조회, `@OrderBy` 제거 시 실패 확인) 추가로 4/4 (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderPersistenceTest'`
 Expected: PASS (3개)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `ba2b32b`, 보강 `22b3a3a`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/order/OrderRepository.kt src/test/kotlin/io/github/dudco/paymentplayground/order/OrderPersistenceTest.kt
