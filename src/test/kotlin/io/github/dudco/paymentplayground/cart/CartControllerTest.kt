@@ -3,7 +3,7 @@ package io.github.dudco.paymentplayground.cart
 import com.jayway.jsonpath.JsonPath
 import io.github.dudco.paymentplayground.customer.CustomerWebConfig
 import io.github.dudco.paymentplayground.customer.HeaderCurrentCustomerResolver
-import io.github.dudco.paymentplayground.product.MockProductCatalog
+import io.github.dudco.paymentplayground.product.FixedProductRepository
 import org.hamcrest.Matchers.contains
 import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.BeforeEach
@@ -31,7 +31,7 @@ import kotlin.test.assertNotEquals
  */
 @WebMvcTest(controllers = [CartController::class])
 @Import(
-	CartService::class, MockProductCatalog::class, CustomerWebConfig::class, HeaderCurrentCustomerResolver::class,
+	CartService::class, FixedProductRepository::class, CustomerWebConfig::class, HeaderCurrentCustomerResolver::class,
 	CartControllerTest.Fixtures::class,
 )
 class CartControllerTest(

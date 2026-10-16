@@ -11,7 +11,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @WebMvcTest(controllers = [ProductController::class])
-@Import(MockProductCatalog::class)
+@Import(ProductService::class, FixedProductRepository::class)
 class ProductControllerTest(@Autowired private val mockMvc: MockMvc) {
 
 	@Test

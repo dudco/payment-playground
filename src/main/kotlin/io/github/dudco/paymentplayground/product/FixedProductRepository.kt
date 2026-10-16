@@ -1,10 +1,10 @@
 package io.github.dudco.paymentplayground.product
 
-import org.springframework.stereotype.Component
+import org.springframework.stereotype.Repository
 
-/** 고정된 5개 상품을 가진 Mock 카탈로그. */
-@Component
-class MockProductCatalog : ProductCatalog {
+/** 코드에 고정된 5개 상품을 가진 상품 저장소(ADR-0005). */
+@Repository
+class FixedProductRepository : ProductRepository {
 
 	private val products: List<Product> = listOf(
 		Product("americano", "아메리카노", 4500),

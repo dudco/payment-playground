@@ -3,9 +3,9 @@ package io.github.dudco.paymentplayground.order
 import io.github.dudco.paymentplayground.cart.Cart
 import io.github.dudco.paymentplayground.cart.InMemoryCartRepository
 import io.github.dudco.paymentplayground.cart.MutableClock
-import io.github.dudco.paymentplayground.product.MockProductCatalog
+import io.github.dudco.paymentplayground.product.FixedProductRepository
 import io.github.dudco.paymentplayground.product.Product
-import io.github.dudco.paymentplayground.product.ProductCatalog
+import io.github.dudco.paymentplayground.product.ProductRepository
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
@@ -14,17 +14,17 @@ import java.time.Instant
 val ORDER_TEST_NOW: Instant = Instant.parse("2026-10-14T03:10:00Z")
 
 /** 테스트에서 상품을 바꾸거나 지울 수 있는 카탈로그. `@Component`를 붙이지 않는다. */
-class MutableProductCatalog : ProductCatalog {
+class MutableProductRepository : ProductRepository {
 	private val products = linkedMapOf<String, Product>()
 
 	init {
 		reset()
 	}
 
-	/** `MockProductCatalog`의 5개 상품으로 되돌린다. */
+	/** `FixedProductRepository`의 5개 상품으로 되돌린다. */
 	fun reset() {
 		products.clear()
-		MockProductCatalog().findAll().forEach { products[it.id] = it }
+		FixedProductRepository().findAll().forEach { products[it.id] = it }
 	}
 
 	/** 같은 ID의 상품이 있으면 교체한다. */
@@ -55,7 +55,7 @@ class OrderTestConfiguration {
 
 	@Bean
 	@Primary
-	fun mutableProductCatalog(): MutableProductCatalog = MutableProductCatalog()
+	fun mutableProductRepository(): MutableProductRepository = MutableProductRepository()
 }
 
 fun InMemoryCartRepository.saveDefaultCart(customerId: String = "customer-001", key: String = "key-1") {

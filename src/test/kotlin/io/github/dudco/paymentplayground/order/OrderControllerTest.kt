@@ -29,7 +29,7 @@ import kotlin.test.assertEquals
 class OrderControllerTest(
 	@Autowired private val mockMvc: MockMvc,
 	@Autowired private val carts: InMemoryCartRepository,
-	@Autowired private val catalog: MutableProductCatalog,
+	@Autowired private val catalog: MutableProductRepository,
 	@Autowired private val clock: MutableClock,
 	@Autowired private val databaseCleaner: DatabaseCleaner,
 ) {

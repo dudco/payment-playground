@@ -1,6 +1,6 @@
 package io.github.dudco.paymentplayground.cart
 
-import io.github.dudco.paymentplayground.product.MockProductCatalog
+import io.github.dudco.paymentplayground.product.FixedProductRepository
 import io.github.dudco.paymentplayground.support.InvalidRequestException
 import io.github.dudco.paymentplayground.support.NotFoundException
 import java.time.Instant
@@ -13,7 +13,7 @@ import kotlin.test.assertNotNull
 class CartServiceTest {
 	private val clock = MutableClock(Instant.parse("2026-10-13T11:20:30Z"))
 	private val repository = InMemoryCartRepository(clock)
-	private val service = CartService(repository, MockProductCatalog(), SequentialIdempotencyKeyGenerator(), clock)
+	private val service = CartService(repository, FixedProductRepository(), SequentialIdempotencyKeyGenerator(), clock)
 
 	@Test
 	fun `장바구니가 없으면 빈 응답이다`() {

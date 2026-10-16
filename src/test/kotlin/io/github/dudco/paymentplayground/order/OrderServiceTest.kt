@@ -24,7 +24,7 @@ class OrderServiceTest(
 	@Autowired private val service: OrderService,
 	@Autowired private val orderRepository: OrderRepository,
 	@Autowired private val carts: InMemoryCartRepository,
-	@Autowired private val catalog: MutableProductCatalog,
+	@Autowired private val catalog: MutableProductRepository,
 	@Autowired private val clock: MutableClock,
 	@Autowired private val databaseCleaner: DatabaseCleaner,
 ) {

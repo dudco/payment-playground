@@ -1,6 +1,6 @@
 package io.github.dudco.paymentplayground.cart
 
-import io.github.dudco.paymentplayground.product.ProductCatalog
+import io.github.dudco.paymentplayground.product.ProductRepository
 import io.github.dudco.paymentplayground.product.productNotFound
 import io.github.dudco.paymentplayground.support.InvalidRequestException
 import org.springframework.stereotype.Service
@@ -35,7 +35,7 @@ data class CartLineView(
 @Service
 class CartService(
 	private val cartRepository: CartRepository,
-	private val productCatalog: ProductCatalog,
+	private val productRepository: ProductRepository,
 	private val keyGenerator: IdempotencyKeyGenerator,
 	private val clock: Clock,
 ) {
@@ -49,7 +49,7 @@ class CartService(
 		if (productIds.toSet().size != productIds.size) {
 			throw InvalidRequestException("같은 상품이 두 번 이상 있습니다.")
 		}
-		if (productIds.any { productCatalog.findById(it) == null }) {
+		if (productIds.any { productRepository.findById(it) == null }) {
 			throw productNotFound()
 		}
 		if (lines.isEmpty()) {
@@ -71,7 +71,7 @@ class CartService(
 	/** 카탈로그에서 사라진 상품의 라인은 건너뛰어 응답과 총액에 포함하지 않는다. */
 	private fun toView(cart: Cart, expiresAt: Instant?): CartView {
 		val lineViews = cart.lines.mapNotNull { (productId, quantity) ->
-			val product = productCatalog.findById(productId) ?: return@mapNotNull null
+			val product = productRepository.findById(productId) ?: return@mapNotNull null
 			CartLineView(product.id, product.name, product.price, quantity, product.price * quantity)
 		}
 		return CartView(cart.customerId, cart.idempotencyKey, lineViews, lineViews.sumOf { it.lineAmount }, expiresAt)
