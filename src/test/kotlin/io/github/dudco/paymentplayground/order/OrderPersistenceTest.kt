@@ -65,6 +65,18 @@ class OrderPersistenceTest(
 		assertFailsWith<DataAccessException> { insertLine("l5", "o1", unitPrice = 6000, quantity = 1, lineAmount = 6000) }
 	}
 
+	@Test
+	fun `DB에 상품 ID 역순으로 저장된 라인도 productId 오름차순으로 읽힌다`() {
+		insertOrder("or1", "key-r")
+		insertLine("lr1", "or1", unitPrice = 5000, quantity = 1, lineAmount = 5000, productId = "latte", productName = "카페라테")
+		insertLine("lr2", "or1", unitPrice = 4500, quantity = 1, lineAmount = 4500, productId = "americano", productName = "아메리카노")
+
+		transactionTemplate.executeWithoutResult { _ ->
+			val found = assertNotNull(orderRepository.findByIdempotencyKey("key-r"))
+			assertEquals(listOf("americano", "latte"), found.lines.map { it.productId })
+		}
+	}
+
 	private fun order() = Order(
 		idempotencyKey = "key-1",
 		customerId = "customer-001",
@@ -83,11 +95,19 @@ class OrderPersistenceTest(
 		)
 	}
 
-	private fun insertLine(id: String, orderId: String, unitPrice: Long, quantity: Int, lineAmount: Long) {
+	private fun insertLine(
+		id: String,
+		orderId: String,
+		unitPrice: Long,
+		quantity: Int,
+		lineAmount: Long,
+		productId: String = "cake",
+		productName: String = "케이크",
+	) {
 		jdbc.update(
 			"INSERT INTO order_lines (id, order_id, product_id, product_name, unit_price, quantity, line_amount) " +
-				"VALUES (?, ?, 'cake', '케이크', ?, ?, ?)",
-			id, orderId, unitPrice, quantity, lineAmount,
+				"VALUES (?, ?, ?, ?, ?, ?, ?)",
+			id, orderId, productId, productName, unitPrice, quantity, lineAmount,
 		)
 	}
 }
