@@ -55,6 +55,7 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 
 - [상품 조회 API 명세](specs/product-api.md)
 - [장바구니 API 명세](specs/cart-api.md)
+- [주문 API 명세](specs/order-api.md)
 
 ### `plans/`
 
@@ -65,7 +66,10 @@ Architecture Decision Record의 모음이다. 되돌리기 어렵거나 여러 �
 - TDD 순서(RED → GREEN → REFACTOR), 정확한 대상 파일, 테스트 명령, 검증 기준을 기록한다.
 - 계획은 구현 작업 단위이며, 기능 요구사항의 기준 문서는 `prd.md`와 `specs/`다.
 
-현재 계획: [상품·장바구니 API 구현 계획](plans/2026-10-13-01-cart-api-implementation.md)
+현재 계획:
+
+- [상품·장바구니 API 구현 계획](plans/2026-10-13-01-cart-api-implementation.md) (완료)
+- [주문 API 구현 계획](plans/2026-10-16-01-order-api-implementation.md) (완료)
 
 ## 새 기능을 추가하는 순서
 

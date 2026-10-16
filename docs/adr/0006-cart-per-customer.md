@@ -1,6 +1,6 @@
 # ADR-0006: 장바구니를 고객별로 하나 두고 전체 교체 방식으로 저장
 
-- 상태: 제안됨 (검토 중)
+- 상태: 승인됨
 - 일자: 2026-10-13
 - 관계: [ADR-0002](0002-cart-checkout-creates-order.md)를 대체한다. [ADR-0003](0003-cart-in-redis-with-ttl.md)의 "Cart는 Redis에 TTL과 함께 저장한다"는 유지하고, 키(`cart:{idempotencyKey}`)와 주문 여부 판단 규칙을 대체한다. 멱등키의 발급과 사용 범위는 [ADR-0007](0007-checkout-idempotency-key.md)에서 정한다.
 

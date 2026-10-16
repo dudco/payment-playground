@@ -64,7 +64,7 @@ Cart 생명주기:
 3. 빈 목록 저장이나 TTL 만료로 키가 사라지면 멱등키도 사라진다.
 4. 주문 생성 후의 처리는 주문 스펙에서 정한다([ADR-0007](adr/0007-checkout-idempotency-key.md)).
 
-> 아래 4장 이후의 주문·결제 모델은 이전 설계에서 남긴 초안이다. 주문·결제 스펙을 작성할 때 장바구니 변경([ADR-0006](adr/0006-cart-per-customer.md))에 맞춰 다시 확정한다. `orders.idempotency_key`는 장바구니에서 발급한 체크아웃 멱등키를 그대로 쓴다([ADR-0007](adr/0007-checkout-idempotency-key.md)). 장바구니 삭제 시점과 결제의 멱등키 사용 방식은 각 스펙에서 확정한다.
+> 4·5장의 주문 모델은 [주문 API 명세](specs/order-api.md#3-저장-모델) 기준으로 확정되었다. 7장 이후의 결제 모델은 이전 설계에서 남긴 초안이다. 주문·결제 스펙을 작성할 때 장바구니 변경([ADR-0006](adr/0006-cart-per-customer.md))에 맞춰 다시 확정한다. `orders.idempotency_key`는 장바구니에서 발급한 체크아웃 멱등키를 그대로 쓴다([ADR-0007](adr/0007-checkout-idempotency-key.md)). 장바구니 삭제 시점과 결제의 멱등키 사용 방식은 각 스펙에서 확정한다.
 
 ## 4. Order (`orders`)
 
@@ -74,13 +74,13 @@ Cart 생명주기:
 | `idempotencyKey` | 원본 Cart의 멱등키 | unique, 필수 |
 | `customerId` | 고객 참조 식별자 | 필수 |
 | `status` | `CREATED`, `PAID` | 필수 |
-| `totalAmount` | 주문 총액 | 0보다 큼 |
+| `totalAmount` | 주문 총액 | 0 이상(`CHECK (total_amount >= 0)`) |
 | `createdAt` | 주문 생성 시각 | 필수 |
 | `updatedAt` | 마지막 상태 변경 시각 | 필수 |
 
 정합성 규칙: `totalAmount = Σ(OrderLine.quantity × OrderLine.unitPrice)`.
 
-`POST /order`는 Order·OrderLine 생성을 하나의 DB 트랜잭션에서 수행하고, 커밋 후 Redis Cart를 삭제한다. `idempotencyKey`의 unique 제약으로 하나의 키가 여러 주문을 만들지 못하게 한다.
+`POST /orders`는 Order·OrderLine 생성을 하나의 DB 트랜잭션에서 수행하고, 커밋 후 Redis Cart를 삭제한다. `idempotencyKey`의 unique 제약으로 하나의 키가 여러 주문을 만들지 못하게 한다.
 
 상태:
 
@@ -92,12 +92,18 @@ Cart 생명주기:
 | 필드 | 설명 | 제약 |
 | --- | --- | --- |
 | `id` | 주문 라인 식별자(UUID) | PK |
-| `orderId` | 소속 주문 식별자 | FK, 필수 |
+| `orderId` | 소속 주문 식별자 | FK, 필수, `(orderId, productId)` unique |
 | `productId` | 상품 참조 식별자 | 필수 |
 | `productName` | 주문 시점 상품명 스냅샷 | 필수 |
-| `quantity` | 수량 | 0보다 큼 |
+| `quantity` | 수량 | 1–99 |
 | `unitPrice` | 주문 시점 단가 | 0 이상 |
-| `lineAmount` | `quantity × unitPrice` | 서버 계산 |
+| `lineAmount` | `quantity × unitPrice` | 서버 계산, `CHECK (line_amount = unit_price * quantity)` |
+
+저장 방식(주문 마이그레이션 `V1__create_orders.sql` 기준):
+
+- `id`는 Hibernate가 만드는 UUID 문자열(`TEXT`)이다.
+- 시각(`createdAt`, `updatedAt`)은 `InstantTextConverter`로 ISO-8601 UTC 문자열(`TEXT`)로 저장한다. 소수 자릿수가 값마다 달라서 문자열로 정렬하면 시간 순서와 어긋날 수 있다. 시각 순 정렬이 필요하면 파싱해서 비교한다.
+- `order_lines.order_id`의 FK는 선언만 되어 있고 강제되지 않는다. SQLite의 `foreign_keys`가 꺼져 있기 때문이다. 존재하지 않는 주문을 가리키는 라인을 DB가 막지 않는다.
 
 `OrderLine`은 주문 후 변경하지 않는다. `itemId`는 이 MVP에 추가하지 않는다. 하나의 상품을 어떤 품목에서 출고·매입했는지는 재고/조달 기능과 함께 별도 할당 모델로 추가한다.
 
@@ -191,5 +197,6 @@ Payment는 Gateway 결과가 나온 뒤 한 번 저장되며 이후 상태가 �
 
 - unique 제약: `orders.idempotency_key`, `(payments.method, payments.provider_transaction_id)`.
 - 조회 인덱스: `order_lines.order_id`, `payments.order_id`.
+- `order_lines.order_id` FK는 선언만 되어 있고 이 단계에서는 강제되지 않는다(SQLite `foreign_keys` 꺼짐). 라인이 주문 없이 남지 않도록 보장하는 것은 한 트랜잭션에서 함께 저장하는 애플리케이션 코드다.
 - 금액과 수량은 애플리케이션 검증과 DB 제약(`CHECK`)을 함께 적용한다. 제약은 Flyway 마이그레이션 SQL에 정의한다.
 - "주문당 `APPROVED` 결제는 최대 하나"는 이 단계에서 애플리케이션 검사로만 보장한다. 동시 요청에서는 깨질 수 있다([PRD 10. 알려진 한계](prd.md#8-알려진-한계)).
