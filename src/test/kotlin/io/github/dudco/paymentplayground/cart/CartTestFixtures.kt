@@ -29,6 +29,9 @@ class SequentialIdempotencyKeyGenerator : IdempotencyKeyGenerator {
 class InMemoryCartRepository(private val clock: Clock) : CartRepository {
 	private val carts = mutableMapOf<String, StoredCart>()
 
+	/** `true`면 [delete]가 예외를 던진다. 삭제 실패를 흉내 낼 때 쓴다. */
+	var failOnDelete: Boolean = false
+
 	override fun find(customerId: String): StoredCart? = carts[customerId]
 
 	override fun save(cart: Cart): Instant {
@@ -38,6 +41,7 @@ class InMemoryCartRepository(private val clock: Clock) : CartRepository {
 	}
 
 	override fun delete(customerId: String) {
+		if (failOnDelete) throw IllegalStateException("장바구니 삭제 실패(테스트)")
 		carts.remove(customerId)
 	}
 
@@ -45,6 +49,7 @@ class InMemoryCartRepository(private val clock: Clock) : CartRepository {
 
 	fun clear() {
 		carts.clear()
+		failOnDelete = false
 	}
 
 	private companion object {
