@@ -28,6 +28,14 @@ data class CartLineResult(
 	val lineAmount: Long,
 )
 
+/** 주문에 쓰는 장바구니. 가격 계산 없이 저장된 라인을 `productId` 오름차순으로 담는다. */
+data class CheckoutCartResult(
+	val idempotencyKey: String,
+	val lines: List<CheckoutCartLineResult>,
+)
+
+data class CheckoutCartLineResult(val productId: String, val quantity: Int)
+
 /**
  * 장바구니 저장(전체 교체)과 조회.
  * 멱등키는 장바구니를 처음 만들 때 한 번 발급하고 장바구니가 존재하는 동안 유지한다.
@@ -65,6 +73,20 @@ class CartService(
 			?: Cart.create(customerId, keyGenerator.generate(), quantities, now)
 		val expiresAt = cartRepository.save(cart)
 		return toResult(cart, expiresAt)
+	}
+
+	/** 주문을 위한 조회. 장바구니가 없으면 `null`이다. */
+	fun findForCheckout(customerId: String): CheckoutCartResult? {
+		val cart = cartRepository.find(customerId)?.cart ?: return null
+		return CheckoutCartResult(
+			cart.idempotencyKey,
+			cart.lines.map { (productId, quantity) -> CheckoutCartLineResult(productId, quantity) },
+		)
+	}
+
+	/** 장바구니를 지운다. 주문이 확정된 뒤 호출한다. */
+	fun clear(customerId: String) {
+		cartRepository.delete(customerId)
 	}
 
 	private fun emptyResult(customerId: String) = CartResult(customerId, null, emptyList(), 0, null)

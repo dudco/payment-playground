@@ -10,6 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import io.github.dudco.paymentplayground.support.SequentialIdempotencyKeyGenerator
 
 class CartServiceTest {
@@ -101,5 +102,29 @@ class CartServiceTest {
 
 		assertEquals(listOf("americano"), view.lines.map { it.productId })
 		assertEquals(4500L, view.totalAmount)
+	}
+
+	@Test
+	fun `주문용 조회는 멱등키와 상품 ID 순 라인을 돌려준다`() {
+		service.save("customer-001", listOf(CartLineCommand("cake", 1), CartLineCommand("americano", 2)))
+
+		assertEquals(
+			CheckoutCartResult("key-1", listOf(CheckoutCartLineResult("americano", 2), CheckoutCartLineResult("cake", 1))),
+			service.findForCheckout("customer-001"),
+		)
+	}
+
+	@Test
+	fun `장바구니가 없으면 주문용 조회는 null이다`() {
+		assertNull(service.findForCheckout("customer-001"))
+	}
+
+	@Test
+	fun `clear는 장바구니를 지운다`() {
+		service.save("customer-001", listOf(CartLineCommand("cookie", 1)))
+
+		service.clear("customer-001")
+
+		assertFalse(repository.contains("customer-001"))
 	}
 }

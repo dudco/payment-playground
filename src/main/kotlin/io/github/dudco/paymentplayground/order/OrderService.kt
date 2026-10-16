@@ -1,6 +1,6 @@
 package io.github.dudco.paymentplayground.order
 
-import io.github.dudco.paymentplayground.cart.CartRepository
+import io.github.dudco.paymentplayground.cart.CartService
 import io.github.dudco.paymentplayground.product.ProductService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -43,7 +43,7 @@ private fun Order.toResult() = OrderResult(
 @Service
 class OrderService(
 	private val orderRepository: OrderRepository,
-	private val cartRepository: CartRepository,
+	private val cartService: CartService,
 	private val productService: ProductService,
 	private val transactionTemplate: TransactionTemplate,
 	private val clock: Clock,
@@ -65,12 +65,12 @@ class OrderService(
 			return PlaceOrderResult(existing, false)
 		}
 
-		val cart = cartRepository.find(customerId)?.cart ?: throw cartNotFound()
+		val cart = cartService.findForCheckout(customerId) ?: throw cartNotFound()
 		if (cart.idempotencyKey != idempotencyKey) throw idempotencyKeyMismatch()
 
-		val products = productService.findByIds(cart.lines.keys)
-		val lines = cart.lines.mapNotNull { (productId, quantity) ->
-			products[productId]?.let { OrderLine(it.productId, it.name, it.price, quantity) }
+		val products = productService.findByIds(cart.lines.map { it.productId })
+		val lines = cart.lines.mapNotNull { line ->
+			products[line.productId]?.let { OrderLine(it.productId, it.name, it.price, line.quantity) }
 		}
 		if (lines.isEmpty()) throw cartNotFound()
 
@@ -92,7 +92,7 @@ class OrderService(
 	/** 주문은 이미 확정됐으므로 장바구니 삭제 실패는 로그만 남긴다. 장바구니는 TTL로 사라진다. */
 	private fun deleteCartQuietly(customerId: String, orderId: String) {
 		try {
-			cartRepository.delete(customerId)
+			cartService.clear(customerId)
 		} catch (e: Exception) {
 			log.warn("주문 {} 확정 후 장바구니 삭제에 실패했습니다.", orderId, e)
 		}
@@ -101,8 +101,8 @@ class OrderService(
 	/** 재호출 때 남은 장바구니를 정리한다. 새 키로 다시 생긴 장바구니는 건드리지 않는다. 실패해도 응답에 영향이 없다. */
 	private fun cleanUpCartIfSameKey(customerId: String, idempotencyKey: String, orderId: String) {
 		try {
-			if (cartRepository.find(customerId)?.cart?.idempotencyKey == idempotencyKey) {
-				cartRepository.delete(customerId)
+			if (cartService.findForCheckout(customerId)?.idempotencyKey == idempotencyKey) {
+				cartService.clear(customerId)
 			}
 		} catch (e: Exception) {
 			log.warn("주문 {} 재호출 때 장바구니 정리에 실패했습니다.", orderId, e)
