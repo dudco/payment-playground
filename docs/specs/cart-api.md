@@ -22,13 +22,17 @@
 ```text
 io.github.dudco.paymentplayground
 ├── cart
-│   ├── CartController       헤더·본문 검증, SaveCartRequest → CartLineCommand, CartResult → CartResponse
-│   ├── CartApi              SaveCartRequest, SaveCartLineRequest, CartResponse, CartLineResponse
-│   ├── CartService          상품 확인, 멱등키 발급·유지, 금액 계산. CartLineCommand를 받고 CartResult를 반환
-│   ├── Cart                 고객 ID, 멱등키, 장바구니 라인(상품별 수량)
-│   ├── CartRepository       저장소 인터페이스, StoredCart
-│   ├── RedisCartRepository  Redis JSON + TTL 구현. 저장 형식(JSON 문서)은 이 파일 안의 private 타입
-│   └── CartProperties       payment-playground.cart.* 설정
+│   ├── controller
+│   │   ├── CartController       헤더·본문 검증, SaveCartRequest → CartLineCommand, CartResult → CartResponse
+│   │   └── CartApi              SaveCartRequest, SaveCartLineRequest, CartResponse, CartLineResponse
+│   ├── service
+│   │   └── CartService          상품 확인, 멱등키 발급·유지, 금액 계산, 삭제(clear). CartLineCommand를 받고 CartResult를 반환
+│   ├── domain
+│   │   └── Cart                 고객 ID, 멱등키, 장바구니 라인(상품별 수량)
+│   └── repository
+│       ├── CartRepository       저장소 인터페이스, StoredCart
+│       ├── RedisCartRepository  Redis JSON + TTL 구현. 저장 형식(JSON 문서)은 이 파일 안의 private 타입
+│       └── CartProperties       payment-playground.cart.* 설정
 ├── customer
 │   ├── CurrentCustomer             컨트롤러 파라미터에 붙이는 애노테이션
 │   └── HeaderCurrentCustomerResolver  X-Customer-ID 헤더에서 고객 ID를 꺼내는 임시 구현

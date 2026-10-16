@@ -23,21 +23,24 @@
 
 ```text
 io.github.dudco.paymentplayground.order
-├── OrderController    헤더 검증, PlaceOrderResult → 201/200 + OrderResponse
-├── OrderApi           OrderResponse, OrderLineResponse
-├── OrderService       장바구니 확인, 스냅샷 생성, 멱등 재호출 처리, 커밋 후 장바구니 삭제.
-│                      OrderResult, OrderLineResult, PlaceOrderResult(order, created) 반환
-├── Order              주문 엔티티 (@Table(name = "orders")), OrderLine 목록을 가진다
-├── OrderLine          주문 라인 엔티티 (@Table(name = "order_lines")), 생성 후 불변
-├── OrderStatus        CREATED (결제 스펙에서 PAID 추가)
-├── OrderRepository    Spring Data JPA. findByIdempotencyKey, findById
-└── OrderErrors        cartNotFound(), orderNotFound(), idempotencyKeyMismatch()
+├── controller
+│   ├── OrderController    헤더 검증, PlaceOrderResult → 201/200 + OrderResponse
+│   └── OrderApi           OrderResponse, OrderLineResponse
+├── service
+│   ├── PlaceOrderService  장바구니 확인, 스냅샷 생성, 멱등 재호출 처리, 커밋 후 장바구니 삭제. PlaceOrderResult(order, created) 반환
+│   ├── GetOrderService    주문 한 건 조회, OrderResult 반환
+│   └── OrderResult        OrderResult, OrderLineResult (두 서비스가 공유)
+├── domain
+│   ├── Order              주문 엔티티 (@Table(name = "orders")), OrderLine 목록을 가진다. OrderLine, OrderStatus도 같은 파일
+│   └── OrderErrors        cartNotFound(), orderNotFound(), idempotencyKeyMismatch()
+└── repository
+    └── OrderRepository    Spring Data JPA. findByIdempotencyKey, findById
 ```
 
-- 의존 방향은 `order → cart`, `order → product`다. `OrderService`는 장바구니를 `CartRepository`로 읽고(읽기 전용) `CartService.clear`로 지우며, `ProductRepository`로 상품명·단가를 읽는다(읽기 전용). `cart` 패키지는 `order`를 알지 못한다.
+- 의존 방향은 `order → cart`, `order → product`다. `PlaceOrderService`는 장바구니를 `CartRepository`로 읽고(읽기 전용) `CartService.clear`로 지우며, `ProductRepository`로 상품명·단가를 읽는다(읽기 전용). `cart` 패키지는 `order`를 알지 못한다.
 - 고객 ID는 장바구니와 같이 `@CurrentCustomer customerId: String`으로 받는다([ADR-0006](../adr/0006-cart-per-customer.md)).
 - 멱등키는 Controller에서 `Idempotency-Key` 요청 헤더로 받아 앞뒤 공백을 제거한 값을 서비스에 넘긴다([ADR-0007](../adr/0007-checkout-idempotency-key.md#키-전달-방식)). 공통 필터·인터셉터로 옮기는 것은 이후 단계에서 실험한다.
-- `Order` 엔티티는 서비스 밖으로 나가지 않는다. 지연 로딩되는 `lines`는 트랜잭션 안에서 `OrderResult`로 옮긴다.
+- `Order` 엔티티는 서비스 밖으로 나가지 않는다. 지연 로딩되는 `lines`는 트랜잭션 안에서 `OrderResult`로 옮긴다(`Order.toResult()`).
 - 현재 시각은 주입받은 `Clock`에서 얻는다.
 
 ## 3. 저장 모델

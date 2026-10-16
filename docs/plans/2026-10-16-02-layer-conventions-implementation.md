@@ -420,9 +420,9 @@ Task 9 뒤에 정리했다: `findForCheckout`이 하는 일은 필요한 필드�
 - 테스트도 같은 패키지로 옮긴다. `CartTestFixtures.kt`는 나눈다: `MutableClock` → 테스트 `support/MutableClock.kt`, `InMemoryCartRepository` → 테스트 `cart/repository/InMemoryCartRepository.kt`. `OrderTestFixtures.kt`는 테스트 `order` 루트에 둔다.
 - 모든 이동은 `git mv`로 하고, 패키지 선언과 import만 바꾼다. 코드 내용은 바꾸지 않는다.
 
-- [ ] **Step 1:** 이동과 패키지·import 정리
-- [ ] **Step 2:** `./gradlew test` → 80개 통과. `grep -rn "import io.github.dudco.paymentplayground.\(product\|cart\|order\).\(domain\|repository\)" src/main/kotlin/io/github/dudco/paymentplayground/*/controller`가 결과 없음
-- [ ] **Step 3:** 커밋 `refactor: 기능 패키지를 controller·service·domain·repository 하위 패키지로 나눔`
+- [x] **Step 1:** 이동과 패키지·import 정리
+- [x] **Step 2:** (통과 80/80, 두 검색 결과 없음, 2026-10-16) `./gradlew test` → 80개 통과. `grep -rn "import io.github.dudco.paymentplayground.\(product\|cart\|order\).\(domain\|repository\)" src/main/kotlin/io/github/dudco/paymentplayground/*/controller`가 결과 없음
+- [x] **Step 3:** (`8930955`) 커밋 `refactor: 기능 패키지를 controller·service·domain·repository 하위 패키지로 나눔`
 
 ### Task 12: OrderService를 PlaceOrderService·GetOrderService로 분리
 
@@ -432,7 +432,7 @@ Task 9 뒤에 정리했다: `findForCheckout`이 하는 일은 필요한 필드�
 - `OrderController(placeOrderService, getOrderService)`.
 - 테스트: `OrderServiceTest` → `PlaceOrderServiceTest`(주문 생성·재호출·장바구니 정리·오류 테스트), `GetOrderServiceTest`(가격 스냅샷 조회, `ORDER_NOT_FOUND` 테스트). 단언은 그대로, 받는 서비스만 바꾼다.
 
-- [ ] **Step 1:** 테스트를 두 클래스로 나누고 새 서비스 이름으로 바꿈 → `./gradlew test --tests 'io.github.dudco.paymentplayground.order.service.*'` Expected: FAIL (`Unresolved reference 'PlaceOrderService'`)
-- [ ] **Step 2:** 서비스 분리 구현 → `./gradlew test` Expected: PASS, 80개
-- [ ] **Step 3:** 커밋 `refactor: 주문 서비스를 PlaceOrderService·GetOrderService로 분리`
-- [ ] **Step 4:** 상품·장바구니·주문 스펙 2장의 패키지 트리를 새 구조로 고친다. 커밋 `docs: 스펙의 패키지 구조를 하위 패키지 구성에 맞춤`
+- [x] **Step 1:** 테스트를 두 클래스로 나누고 새 서비스 이름으로 바꿈 → `./gradlew test --tests 'io.github.dudco.paymentplayground.order.service.*'` Expected: FAIL (`Unresolved reference 'PlaceOrderService'`) — RED 확인 (2026-10-16)
+- [x] **Step 2:** 서비스 분리 구현 → `./gradlew test` Expected: PASS, 80개 — 통과 80/80 (2026-10-16)
+- [x] **Step 3:** (`5555dd9`) 커밋 `refactor: 주문 서비스를 PlaceOrderService·GetOrderService로 분리`
+- [x] **Step 4:** 상품·장바구니·주문 스펙 2장의 패키지 트리를 새 구조로 고친다. 커밋 `docs: 스펙의 패키지 구조를 하위 패키지 구성에 맞춤`

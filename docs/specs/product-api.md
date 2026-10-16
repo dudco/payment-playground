@@ -17,13 +17,17 @@
 
 ```text
 io.github.dudco.paymentplayground.product
-├── ProductController       조회 API. 서비스 결과를 ProductResponse로 바꾼다
-├── ProductApi              ProductResponse (HTTP 응답)
-├── ProductService          조회, ProductResult 반환
-├── Product                 상품 도메인 값 (id, name, price)
-├── ProductRepository       상품 조회 저장소 인터페이스
-├── FixedProductRepository  코드에 고정된 목록을 가진 ProductRepository 구현체 (@Repository)
-└── ProductErrors           productNotFound()
+├── controller
+│   ├── ProductController       조회 API. 서비스 결과를 ProductResponse로 바꾼다
+│   └── ProductApi              ProductResponse (HTTP 응답)
+├── service
+│   └── ProductService          조회, ProductResult 반환
+├── domain
+│   ├── Product                 상품 도메인 값 (id, name, price)
+│   └── ProductErrors           productNotFound()
+└── repository
+    ├── ProductRepository       상품 조회 저장소 인터페이스
+    └── FixedProductRepository  코드에 고정된 목록을 가진 ProductRepository 구현체 (@Repository)
 ```
 
 다른 기능(장바구니·주문)은 상품을 읽기만 하므로 `ProductRepository`로 읽는다. `FixedProductRepository`를 직접 참조하지 않는다. 판매 상태처럼 상품 규칙이 걸린 조회가 생기면 `ProductService`로 옮긴다([코드 컨벤션](../conventions.md) 1.1).
