@@ -23,6 +23,8 @@ import java.time.Clock
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import io.github.dudco.paymentplayground.support.SequentialIdempotencyKeyGenerator
+import io.github.dudco.paymentplayground.support.IdempotencyKeyGenerator
 
 /**
  * 테스트 클래스 안의 설정은 컴포넌트 스캔에서 빠지므로 [Fixtures]를 `@Import`로 직접 등록한다.

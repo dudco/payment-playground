@@ -3,9 +3,6 @@ package io.github.dudco.paymentplayground.cart
 import io.github.dudco.paymentplayground.customer.CurrentCustomer
 import io.github.dudco.paymentplayground.support.InvalidRequestException
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Max
-import jakarta.validation.constraints.Min
-import jakarta.validation.constraints.NotBlank
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -21,25 +18,14 @@ import org.springframework.web.bind.annotation.RestController
 class CartController(private val cartService: CartService) {
 
 	@GetMapping
-	fun get(@CurrentCustomer customerId: String): CartView = cartService.get(customerId)
+	fun get(@CurrentCustomer customerId: String): CartResponse = CartResponse.from(cartService.get(customerId))
 
 	@PostMapping
-	fun save(@CurrentCustomer customerId: String, @Valid @RequestBody request: SaveCartRequest): CartView {
+	fun save(@CurrentCustomer customerId: String, @Valid @RequestBody request: SaveCartRequest): CartResponse {
 		val commands = request.lines.map { line ->
 			if (line == null) throw InvalidRequestException("lines에 비어 있는 항목이 있습니다.")
 			CartLineCommand(line.productId, line.quantity)
 		}
-		return cartService.save(customerId, commands)
+		return CartResponse.from(cartService.save(customerId, commands))
 	}
 }
-
-/**
- * Jackson Kotlin 모듈은 컬렉션의 `null` 원소를 거절하지 않으므로 원소를 nullable로 받고,
- * [CartController.save]에서 `null` 원소를 400으로 처리한다.
- */
-data class SaveCartRequest(@field:Valid val lines: List<SaveCartLineRequest?>)
-
-data class SaveCartLineRequest(
-	@field:NotBlank val productId: String,
-	@field:Min(1) @field:Max(99) val quantity: Int,
-)

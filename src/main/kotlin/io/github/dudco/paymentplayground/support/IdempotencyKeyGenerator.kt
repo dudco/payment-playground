@@ -1,4 +1,4 @@
-package io.github.dudco.paymentplayground.cart
+package io.github.dudco.paymentplayground.support
 
 import org.springframework.stereotype.Component
 import java.util.UUID

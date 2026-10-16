@@ -9,6 +9,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import io.github.dudco.paymentplayground.support.SequentialIdempotencyKeyGenerator
 
 class CartServiceTest {
 	private val clock = MutableClock(Instant.parse("2026-10-13T11:20:30Z"))
@@ -17,7 +18,7 @@ class CartServiceTest {
 
 	@Test
 	fun `장바구니가 없으면 빈 응답이다`() {
-		assertEquals(CartView("customer-001", null, emptyList(), 0, null), service.get("customer-001"))
+		assertEquals(CartResult("customer-001", null, emptyList(), 0, null), service.get("customer-001"))
 	}
 
 	@Test
@@ -27,8 +28,8 @@ class CartServiceTest {
 		assertEquals("key-1", view.idempotencyKey)
 		assertEquals(
 			listOf(
-				CartLineView("americano", "아메리카노", 4500, 2, 9000),
-				CartLineView("cake", "케이크", 6000, 1, 6000),
+				CartLineResult("americano", "아메리카노", 4500, 2, 9000),
+				CartLineResult("cake", "케이크", 6000, 1, 6000),
 			),
 			view.lines,
 		)
@@ -54,7 +55,7 @@ class CartServiceTest {
 	fun `빈 라인 저장은 장바구니를 지우고 다시 담으면 새 멱등키가 발급된다`() {
 		service.save("customer-001", listOf(CartLineCommand("cookie", 1)))
 
-		assertEquals(CartView("customer-001", null, emptyList(), 0, null), service.save("customer-001", emptyList()))
+		assertEquals(CartResult("customer-001", null, emptyList(), 0, null), service.save("customer-001", emptyList()))
 		assertFalse(repository.contains("customer-001"))
 		assertEquals("key-2", service.save("customer-001", listOf(CartLineCommand("cookie", 1))).idempotencyKey)
 	}
