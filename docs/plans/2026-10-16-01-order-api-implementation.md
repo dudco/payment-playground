@@ -285,7 +285,7 @@ git commit -m "feat: 주문 저장소와 DB 제약 테스트 추가"
     - `@Transactional(readOnly = true) fun get(customerId: String, orderId: String): OrderView` — 없거나 고객이 다르면 `orderNotFound()`
 - Task 4가 사용한다.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 @SpringBootTest
@@ -360,21 +360,21 @@ class OrderServiceTest(
 - `주문 후 가격이 바뀌어도 조회는 주문 시점 상품명·단가다`: `place` → `catalog.put(Product("americano", "아이스 아메리카노", 9999))` → `get("customer-001", orderId)`의 `americano` 라인이 `아메리카노`/4500/9000, `totalAmount` 15000.
 - `없는 주문, 다른 고객의 주문, UUID가 아닌 ID는 ORDER_NOT_FOUND다`: `get("customer-002", orderId)`, `get("customer-001", UUID.randomUUID().toString())`, `get("customer-001", "not-a-uuid")` 모두 `ORDER_NOT_FOUND`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 컴파일 오류 `Unresolved reference 'OrderService'` (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderServiceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'OrderService'`)
 
-- [ ] **Step 3: Implement `OrderErrors.kt`, `OrderService`, and the test fixtures per Interfaces**
+- [x] **Step 3: Implement `OrderErrors.kt`, `OrderService`, and the test fixtures per Interfaces**
 
 `OrderService.place`에는 `@Transactional`을 붙이지 않는다. 장바구니 삭제가 커밋 뒤에 일어나야 하기 때문이다.
 
-- [ ] **Step 4: Run the service test and the existing cart tests**
+- [x] **Step 4: Run the service test and the existing cart tests** — 통과: OrderServiceTest 13/13, 장바구니 테스트 변화 없음, 전체 65/65 (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.order.OrderServiceTest' --tests 'io.github.dudco.paymentplayground.cart.*'`
 Expected: PASS (`OrderServiceTest` 13개, 장바구니 테스트는 기존과 같은 개수)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `89e94a8`
 
 ```bash
 git add src/main/kotlin/io/github/dudco/paymentplayground/order src/test/kotlin/io/github/dudco/paymentplayground/cart/CartTestFixtures.kt src/test/kotlin/io/github/dudco/paymentplayground/order/OrderTestFixtures.kt src/test/kotlin/io/github/dudco/paymentplayground/order/OrderServiceTest.kt
