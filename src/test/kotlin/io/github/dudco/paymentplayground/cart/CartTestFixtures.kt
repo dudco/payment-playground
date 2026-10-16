@@ -32,7 +32,13 @@ class InMemoryCartRepository(private val clock: Clock) : CartRepository {
 	/** `true`면 [delete]가 예외를 던진다. 삭제 실패를 흉내 낼 때 쓴다. */
 	var failOnDelete: Boolean = false
 
-	override fun find(customerId: String): StoredCart? = carts[customerId]
+	/** `true`면 [find]가 예외를 던진다. 조회 실패를 흉내 낼 때 쓴다. */
+	var failOnFind: Boolean = false
+
+	override fun find(customerId: String): StoredCart? {
+		if (failOnFind) throw IllegalStateException("장바구니 조회 실패(테스트)")
+		return carts[customerId]
+	}
 
 	override fun save(cart: Cart): Instant {
 		val expiresAt = clock.instant().plus(TTL)
@@ -50,6 +56,7 @@ class InMemoryCartRepository(private val clock: Clock) : CartRepository {
 	fun clear() {
 		carts.clear()
 		failOnDelete = false
+		failOnFind = false
 	}
 
 	private companion object {

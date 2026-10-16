@@ -61,10 +61,7 @@ class OrderService(
 			}
 		}
 		if (existing != null) {
-			// 새 키로 다시 생긴 장바구니는 건드리지 않는다.
-			if (cartRepository.find(customerId)?.cart?.idempotencyKey == idempotencyKey) {
-				deleteCartQuietly(customerId, existing.orderId)
-			}
+			cleanUpCartIfSameKey(customerId, idempotencyKey, existing.orderId)
 			return OrderPlacement(existing, false)
 		}
 
@@ -97,6 +94,17 @@ class OrderService(
 			cartRepository.delete(customerId)
 		} catch (e: Exception) {
 			log.warn("주문 {} 확정 후 장바구니 삭제에 실패했습니다.", orderId, e)
+		}
+	}
+
+	/** 재호출 때 남은 장바구니를 정리한다. 새 키로 다시 생긴 장바구니는 건드리지 않는다. 실패해도 응답에 영향이 없다. */
+	private fun cleanUpCartIfSameKey(customerId: String, idempotencyKey: String, orderId: String) {
+		try {
+			if (cartRepository.find(customerId)?.cart?.idempotencyKey == idempotencyKey) {
+				cartRepository.delete(customerId)
+			}
+		} catch (e: Exception) {
+			log.warn("주문 {} 재호출 때 장바구니 정리에 실패했습니다.", orderId, e)
 		}
 	}
 

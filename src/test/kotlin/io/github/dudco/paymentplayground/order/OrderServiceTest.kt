@@ -177,6 +177,33 @@ class OrderServiceTest(
 	}
 
 	@Test
+	fun `재호출 때 장바구니 조회가 실패해도 기존 주문을 반환한다`() {
+		carts.saveDefaultCart()
+		val first = service.place("customer-001", "key-1")
+		carts.failOnFind = true
+
+		val second = service.place("customer-001", "key-1")
+
+		assertFalse(second.created)
+		assertEquals(first.order, second.order)
+		assertEquals(1, orderRepository.count())
+	}
+
+	@Test
+	fun `재호출 때 장바구니 삭제가 실패해도 기존 주문을 반환한다`() {
+		carts.saveDefaultCart()
+		val first = service.place("customer-001", "key-1")
+		carts.save(Cart.create("customer-001", "key-1", mapOf("cookie" to 5), ORDER_TEST_NOW))
+		carts.failOnDelete = true
+
+		val second = service.place("customer-001", "key-1")
+
+		assertFalse(second.created)
+		assertEquals(first.order, second.order)
+		assertEquals(1, orderRepository.count())
+	}
+
+	@Test
 	fun `주문 후 가격이 바뀌어도 조회는 주문 시점 상품명·단가다`() {
 		carts.saveDefaultCart()
 		val placed = service.place("customer-001", "key-1").order
