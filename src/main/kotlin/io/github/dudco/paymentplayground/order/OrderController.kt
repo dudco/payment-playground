@@ -24,19 +24,20 @@ class OrderController(private val orderService: OrderService) {
 	fun place(
 		@CurrentCustomer customerId: String,
 		@RequestHeader("Idempotency-Key") idempotencyKey: String,
-	): ResponseEntity<OrderView> {
+	): ResponseEntity<OrderResponse> {
 		val key = idempotencyKey.trim()
 		if (key.isEmpty()) throw InvalidRequestException("Idempotency-Key 헤더가 비어 있습니다.")
 
-		val placement = orderService.place(customerId, key)
-		return if (placement.created) {
-			ResponseEntity.created(URI.create("/orders/${placement.order.orderId}")).body(placement.order)
+		val result = orderService.place(customerId, key)
+		val body = OrderResponse.from(result.order)
+		return if (result.created) {
+			ResponseEntity.created(URI.create("/orders/${body.orderId}")).body(body)
 		} else {
-			ResponseEntity.ok(placement.order)
+			ResponseEntity.ok(body)
 		}
 	}
 
 	@GetMapping("/{orderId}")
-	fun get(@CurrentCustomer customerId: String, @PathVariable orderId: String): OrderView =
-		orderService.get(customerId, orderId)
+	fun get(@CurrentCustomer customerId: String, @PathVariable orderId: String): OrderResponse =
+		OrderResponse.from(orderService.get(customerId, orderId))
 }

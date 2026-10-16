@@ -9,7 +9,7 @@ import org.springframework.transaction.support.TransactionTemplate
 import java.time.Clock
 import java.time.Instant
 
-data class OrderLineView(
+data class OrderLineResult(
 	val productId: String,
 	val productName: String,
 	val unitPrice: Long,
@@ -17,25 +17,25 @@ data class OrderLineView(
 	val lineAmount: Long,
 )
 
-data class OrderView(
+data class OrderResult(
 	val orderId: String,
 	val customerId: String,
 	val idempotencyKey: String,
 	val status: OrderStatus,
-	val lines: List<OrderLineView>,
+	val lines: List<OrderLineResult>,
 	val totalAmount: Long,
 	val createdAt: Instant,
 )
 
 /** [created]가 `false`면 같은 멱등키로 이미 만들어진 주문을 다시 돌려준 것이다. */
-data class OrderPlacement(val order: OrderView, val created: Boolean)
+data class PlaceOrderResult(val order: OrderResult, val created: Boolean)
 
-private fun Order.toView() = OrderView(
+private fun Order.toResult() = OrderResult(
 	orderId = checkNotNull(id),
 	customerId = customerId,
 	idempotencyKey = idempotencyKey,
 	status = status,
-	lines = lines.map { OrderLineView(it.productId, it.productName, it.unitPrice, it.quantity, it.lineAmount) },
+	lines = lines.map { OrderLineResult(it.productId, it.productName, it.unitPrice, it.quantity, it.lineAmount) },
 	totalAmount = totalAmount,
 	createdAt = createdAt,
 )
@@ -53,16 +53,16 @@ class OrderService(
 	 *
 	 * 장바구니는 주문이 커밋된 뒤에만 지우므로 이 메서드에는 `@Transactional`을 붙이지 않는다.
 	 */
-	fun place(customerId: String, idempotencyKey: String): OrderPlacement {
+	fun place(customerId: String, idempotencyKey: String): PlaceOrderResult {
 		val existing = transactionTemplate.execute {
 			orderRepository.findByIdempotencyKey(idempotencyKey)?.let {
 				if (it.customerId != customerId) throw idempotencyKeyMismatch()
-				it.toView()
+				it.toResult()
 			}
 		}
 		if (existing != null) {
 			cleanUpCartIfSameKey(customerId, idempotencyKey, existing.orderId)
-			return OrderPlacement(existing, false)
+			return PlaceOrderResult(existing, false)
 		}
 
 		val cart = cartRepository.find(customerId)?.cart ?: throw cartNotFound()
@@ -73,19 +73,19 @@ class OrderService(
 		}
 		if (lines.isEmpty()) throw cartNotFound()
 
-		val view = transactionTemplate.execute {
-			orderRepository.save(Order(idempotencyKey, customerId, lines, clock.instant())).toView()
+		val result = transactionTemplate.execute {
+			orderRepository.save(Order(idempotencyKey, customerId, lines, clock.instant())).toResult()
 		}!!
 
-		deleteCartQuietly(customerId, view.orderId)
-		return OrderPlacement(view, true)
+		deleteCartQuietly(customerId, result.orderId)
+		return PlaceOrderResult(result, true)
 	}
 
 	@Transactional(readOnly = true)
-	fun get(customerId: String, orderId: String): OrderView {
+	fun get(customerId: String, orderId: String): OrderResult {
 		val order = orderRepository.findById(orderId).orElse(null)
 		if (order == null || order.customerId != customerId) throw orderNotFound()
-		return order.toView()
+		return order.toResult()
 	}
 
 	/** 주문은 이미 확정됐으므로 장바구니 삭제 실패는 로그만 남긴다. 장바구니는 TTL로 사라진다. */

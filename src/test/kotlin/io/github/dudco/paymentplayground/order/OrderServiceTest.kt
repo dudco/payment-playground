@@ -49,8 +49,8 @@ class OrderServiceTest(
 			assertEquals(OrderStatus.CREATED, status)
 			assertEquals(
 				listOf(
-					OrderLineView("americano", "아메리카노", 4500, 2, 9000),
-					OrderLineView("cake", "케이크", 6000, 1, 6000),
+					OrderLineResult("americano", "아메리카노", 4500, 2, 9000),
+					OrderLineResult("cake", "케이크", 6000, 1, 6000),
 				),
 				lines,
 			)
@@ -211,7 +211,7 @@ class OrderServiceTest(
 
 		val found = service.get("customer-001", placed.orderId)
 
-		assertEquals(OrderLineView("americano", "아메리카노", 4500, 2, 9000), found.lines.first { it.productId == "americano" })
+		assertEquals(OrderLineResult("americano", "아메리카노", 4500, 2, 9000), found.lines.first { it.productId == "americano" })
 		assertEquals(15000L, found.totalAmount)
 	}
 
