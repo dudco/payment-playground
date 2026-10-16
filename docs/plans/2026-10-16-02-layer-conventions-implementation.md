@@ -158,7 +158,7 @@ git commit -m "refactor: 장바구니 서비스 결과와 HTTP 계약을 분리�
 **Interfaces:**
 - Produces: `@Repository class RedisCartRepository(private val redis: StringRedisTemplate, private val jsonMapper: JsonMapper, private val properties: CartProperties, private val clock: Clock) : CartRepository` — `CartRedisCodec`의 `CartDocument`·`CartLineDocument`를 이 파일의 `private` 타입으로, `encode`·`decode`를 `private fun`으로 옮긴다. 필드 이름(`customerId`, `idempotencyKey`, `lines`, `productId`, `quantity`, `createdAt`, `updatedAt`)과 JSON 형식은 그대로다. `companion object`의 `key`·`expiresAt`도 그대로다. `CartRepository` 인터페이스와 `StoredCart`는 바뀌지 않는다.
 
-- [ ] **Step 1: Update the repository test (failing)**
+- [x] **Step 1: Update the repository test (failing)**
 
 생성자에 `CartRedisCodec` 대신 `JsonMapper.builder().findAndAddModules().build()`를 넘긴다. `codec.encode(cart)`를 기대값으로 쓰던 저장 테스트는 `ArgumentCaptor<String>`로 `set`에 넘어간 값을 잡아 키(`cart:customer-001`)와 TTL(`Duration.ofMinutes(30)`)을 단언하도록 바꾼다. 조회 테스트는 아래 리터럴을 `ops.get`의 반환값으로 쓴다. 그리고 `CartRedisCodecTest`의 두 테스트를 옮겨 다음 세 개를 추가한다.
 
@@ -185,19 +185,19 @@ fun `리팩터링 전 형식으로 저장된 JSON을 읽는다`() { // Review Fo
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 컴파일 오류(생성자 인자 타입 불일치 `JsonMapper` / `CartRedisCodec`) (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.RedisCartRepositoryTest'`
 Expected: FAIL (컴파일 오류: 생성자 인자 타입 불일치 `JsonMapper` / `CartRedisCodec`)
 
-- [ ] **Step 3: Move the codec into `RedisCartRepository` and delete `CartRedisCodec.kt`, `CartRedisCodecTest.kt`**
+- [x] **Step 3: Move the codec into `RedisCartRepository` and delete `CartRedisCodec.kt`, `CartRedisCodecTest.kt`**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests** — 통과: 전체 79/79 (2026-10-16)
 
 Run: `./gradlew test`
 Expected: PASS, 79개(78 − 코덱 테스트 2 + 저장소 테스트 3). `grep -rn "CartRedisCodec" src`가 아무것도 찾지 않는다.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `569cd9f`
 
 ```bash
 git add -A src
