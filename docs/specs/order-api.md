@@ -1,6 +1,6 @@
 # 주문 API 명세
 
-> 상태: 초안 · 작성일: 2026-10-14 · 최종 갱신일: 2026-10-14
+> 상태: 초안 · 작성일: 2026-10-14 · 최종 갱신일: 2026-10-16
 
 > [PRD](../prd.md), [데이터 모델](../data-model.md), [장바구니 API 명세](cart-api.md), [ADR-0003](../adr/0003-cart-in-redis-with-ttl.md), [ADR-0004](../adr/0004-flyway-schema-migration.md), [ADR-0007](../adr/0007-checkout-idempotency-key.md)을 바탕으로 한 두 번째 기능 명세다. 트래픽이 거의 없는 환경을 전제로 하며, 동시성 제어는 넣지 않는다([PRD 8. 알려진 한계](../prd.md#8-알려진-한계)).
 
@@ -58,7 +58,7 @@ io.github.dudco.paymentplayground.order
 | 열 | 설명 | 제약 |
 | --- | --- | --- |
 | `id` | 주문 라인 ID(UUID 문자열) | PK |
-| `order_id` | 소속 주문 | `NOT NULL`, FK → `orders.id` |
+| `order_id` | 소속 주문 | `NOT NULL`, FK → `orders.id` (선언만 하고 이 단계에서는 강제하지 않는다. SQLite `foreign_keys`가 꺼져 있고, 테스트 DB 정리기가 테이블을 순서 없이 비운다.) |
 | `product_id` | 상품 ID | `NOT NULL` |
 | `product_name` | 주문 시점 상품명 | `NOT NULL` |
 | `unit_price` | 주문 시점 단가 | `NOT NULL`, `CHECK (unit_price >= 0)` |
