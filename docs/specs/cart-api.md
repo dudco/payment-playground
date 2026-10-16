@@ -38,7 +38,7 @@ io.github.dudco.paymentplayground
 
 - Controller는 고객 ID를 헤더에서 직접 읽지 않고 `@CurrentCustomer customerId: String` 파라미터로 받는다. 인증이 생기면 resolver 구현만 바꾸고 Controller와 Service는 그대로 둔다([ADR-0006](../adr/0006-cart-per-customer.md)).
 - Service는 `ProductRepository`로 상품을 확인하고(읽기 전용), 결과에 상품명·단가·금액을 채운다. `Cart`는 서비스 밖으로 나가지 않는다.
-- 주문 기능에는 `findForCheckout(customerId): CheckoutCartResult?`(멱등키와 `productId` 오름차순 라인, 가격 계산 없음)와 `clear(customerId)`를 제공한다. 장바구니 삭제는 상태 변경이므로 주문은 반드시 `clear`를 거친다. 조회도 주문에 넘길 모양이 정해져 있어 `findForCheckout`을 쓴다.
+- 주문 기능은 장바구니를 `CartRepository`로 읽고(규칙이 걸리지 않은 순수 읽기), 삭제는 상태 변경이므로 반드시 `CartService.clear(customerId)`를 거친다([코드 컨벤션](../conventions.md) 1.1). "주문할 수 있는 장바구니"에 조건이 생기면 그 조회를 서비스로 옮긴다.
 - Repository는 저장과 TTL만 다룬다. 금액 계산을 하지 않는다.
 
 ## 3. 저장 모델

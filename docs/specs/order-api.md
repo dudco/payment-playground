@@ -34,7 +34,7 @@ io.github.dudco.paymentplayground.order
 └── OrderErrors        cartNotFound(), orderNotFound(), idempotencyKeyMismatch()
 ```
 
-- 의존 방향은 `order → cart`, `order → product`다. `OrderService`는 `CartService`(`findForCheckout`, `clear`)로 장바구니를 읽고 지우며, `ProductRepository`로 상품명·단가를 읽는다(읽기 전용). `cart` 패키지는 `order`를 알지 못한다.
+- 의존 방향은 `order → cart`, `order → product`다. `OrderService`는 장바구니를 `CartRepository`로 읽고(읽기 전용) `CartService.clear`로 지우며, `ProductRepository`로 상품명·단가를 읽는다(읽기 전용). `cart` 패키지는 `order`를 알지 못한다.
 - 고객 ID는 장바구니와 같이 `@CurrentCustomer customerId: String`으로 받는다([ADR-0006](../adr/0006-cart-per-customer.md)).
 - 멱등키는 Controller에서 `Idempotency-Key` 요청 헤더로 받아 앞뒤 공백을 제거한 값을 서비스에 넘긴다([ADR-0007](../adr/0007-checkout-idempotency-key.md#키-전달-방식)). 공통 필터·인터셉터로 옮기는 것은 이후 단계에서 실험한다.
 - `Order` 엔티티는 서비스 밖으로 나가지 않는다. 지연 로딩되는 `lines`는 트랜잭션 안에서 `OrderResult`로 옮긴다.

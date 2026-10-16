@@ -394,3 +394,11 @@ git commit -m "refactor: 주문이 장바구니를 CartService로 조회·삭제
 - [x] **Step 2: 전체 테스트** (통과 82/82, 2026-10-16) — Run: `./gradlew test`, Expected: PASS, 82개(83 − `findByIds` 테스트 1). `grep -rn "CartRepository\|StoredCart" src/main/kotlin/io/github/dudco/paymentplayground/order`가 결과 없음.
 - [x] **Step 3: 커밋** (`dc6cec3`) — `refactor: 다른 기능의 상품 읽기를 ProductRepository로 되돌림`
 - [x] **Step 4: 스펙 갱신** — 상품 스펙 2장(다른 기능은 읽기용으로 `ProductRepository`, 변경 API 없음), 장바구니 스펙 2·4장(상품 조회 주체 `ProductRepository`), 주문 스펙 1·2·5.1장(상품은 `ProductRepository`, 장바구니는 `CartService`). 커밋 `docs: 읽기·변경 기준에 맞춰 스펙 정리`.
+
+### Task 10: 주문의 장바구니 조회도 저장소로
+
+Task 9 뒤에 정리했다: `findForCheckout`이 하는 일은 필요한 필드를 골라내는 것뿐이고 장바구니 규칙이 걸려 있지 않으므로, 컨벤션 1.1대로 순수 읽기는 `CartRepository`로 한다. 삭제는 그대로 `CartService.clear`.
+
+- [x] **Step 1:** `OrderService(orderRepository, cartRepository, cartService, productRepository, transactionTemplate, clock)` — 조회·재호출 정리의 키 비교는 `cartRepository.find(customerId)?.cart`, 삭제는 `cartService.clear`. `findForCheckout`·`CheckoutCartResult`·`CheckoutCartLineResult`와 그 테스트 2개 삭제. `clear` 설명에서 호출 시점 문구 제거.
+- [x] **Step 2:** `./gradlew test` → 80/80 통과(82 − 2), 주문 서비스 테스트 수정 없음 (2026-10-16)
+- [x] **Step 3:** 커밋 `2e7ca8d`, 장바구니·주문 스펙 2장 갱신
