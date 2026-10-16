@@ -250,28 +250,28 @@ git commit -m "refactor: 주문 서비스 결과와 HTTP 계약을 분리"
 **Files:**
 - Modify: `docs/specs/product-api.md`(2장 패키지 목록과 본문의 `ProductCatalog`·`MockProductCatalog`), `docs/specs/cart-api.md`·`docs/specs/order-api.md`(`ProductCatalog` 언급), `docs/data-model.md`(`MockProductCatalog` 언급), `docs/adr/0005-product-api-mock-catalog.md`(상단 관계 줄에 이름 변경 한 줄만 추가, 본문은 고치지 않음), `docs/conventions.md`(상태), `docs/README.md`(계획 목록)
 
-- [ ] **Step 1: 계약이 그대로인지 확인**
+- [x] **Step 1: 계약이 그대로인지 확인** — 확인: import·`@Import`·테스트 빈 타입 변경만, `andExpect` 줄 변경 없음 (2026-10-16)
 
 Run: `git diff main -- src/test/kotlin/io/github/dudco/paymentplayground/product/ProductControllerTest.kt src/test/kotlin/io/github/dudco/paymentplayground/cart/CartControllerTest.kt src/test/kotlin/io/github/dudco/paymentplayground/order/OrderControllerTest.kt`
 Expected: import, `@Import`, 테스트 설정 빈의 타입·이름 변경만 있다. `andExpect` 줄은 하나도 바뀌지 않았다.
 
-- [ ] **Step 2: 컨벤션 위반이 남지 않았는지 확인**
+- [x] **Step 2: 컨벤션 위반이 남지 않았는지 확인** — 확인: 두 검색 모두 결과 없음 (2026-10-16)
 
 Run: `grep -rnE "View\b|Catalog|CartRedisCodec|OrderPlacement" src` 와 `grep -nwE "Product|Cart|Order|OrderLine|OrderStatus" src/main/kotlin/io/github/dudco/paymentplayground/*/*Controller.kt`
 Expected: 둘 다 결과 없음. 두 번째는 같은 패키지라 import 없이 쓰는 도메인 타입까지 잡기 위해 단어 단위로 찾는다(주석에 걸리면 주석 표현을 고친다).
 
-- [ ] **Step 3: Redis 없이 전체 테스트**
+- [x] **Step 3: Redis 없이 전체 테스트** — 통과: 79/79 (2026-10-16)
 
 Run: `./gradlew test`
 Expected: `BUILD SUCCESSFUL`, 79개 통과, 실패 0
 
-- [ ] **Step 4: 문서 갱신**
+- [x] **Step 4: 문서 갱신**
 
 - 스펙·데이터 모델의 `ProductCatalog` → `ProductRepository`, `MockProductCatalog` → `FixedProductRepository`. 상품 스펙 2장은 Task 1의 파일 구성(`ProductRepository`, `FixedProductRepository`, `ProductService`, `ProductApi`, `ProductErrors`)으로 바꾼다.
 - ADR-0005 상단에 "관계: 코드 이름은 [코드 컨벤션](../conventions.md)에 따라 `ProductRepository`/`FixedProductRepository`로 바뀌었다." 한 줄을 추가한다. 결정 본문은 고치지 않는다(문서 가이드의 ADR 규칙).
 - `docs/conventions.md` 상태를 `승인됨`으로 바꾼다(사람 승인 후). 문서 가이드의 계획 목록에서 이 계획에 `(완료)`를 붙인다.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs

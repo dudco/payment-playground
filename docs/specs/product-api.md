@@ -17,15 +17,16 @@
 
 ```text
 io.github.dudco.paymentplayground.product
-├── ProductController    조회 API. 서비스 결과를 ProductResponse로 바꾼다
-├── ProductApi           ProductResponse (HTTP 응답)
-├── ProductService       조회, ProductResult 반환
-├── Product              상품 도메인 값 (id, name, price), ProductCatalog 인터페이스
-├── MockProductCatalog   코드에 고정된 목록을 가진 ProductCatalog 구현체 (@Component)
-└── ProductErrors        productNotFound()
+├── ProductController       조회 API. 서비스 결과를 ProductResponse로 바꾼다
+├── ProductApi              ProductResponse (HTTP 응답)
+├── ProductService          조회, ProductResult 반환
+├── Product                 상품 도메인 값 (id, name, price)
+├── ProductRepository       상품 조회 저장소 인터페이스
+├── FixedProductRepository  코드에 고정된 목록을 가진 ProductRepository 구현체 (@Repository)
+└── ProductErrors           productNotFound()
 ```
 
-다른 기능(장바구니 등)은 `ProductCatalog`만 의존한다. `MockProductCatalog`를 직접 참조하지 않는다.
+다른 기능(장바구니 등)은 `ProductRepository`만 의존한다. `FixedProductRepository`를 직접 참조하지 않는다.
 
 ## 3. Mock 상품 목록
 
