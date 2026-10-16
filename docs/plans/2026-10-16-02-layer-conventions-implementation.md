@@ -277,3 +277,102 @@ Expected: `BUILD SUCCESSFUL`, 79개 통과, 실패 0
 git add docs
 git commit -m "docs: 컨벤션 리팩터링에 맞춰 상품 저장소 이름과 스펙 정리"
 ```
+
+---
+
+## 추가 (2026-10-16): 기능 사이 접근을 서비스로 한정
+
+컨벤션 1.1이 "다른 기능에는 그 기능의 서비스로만 접근한다"로 바뀌었다. Task 1–5가 끝난 상태에서 이어서 한다. Global Constraints는 그대로 적용한다(HTTP 계약·Redis 형식 불변, 컨트롤러 테스트 단언 불변). 추가로, 이 작업 후에는 `cart` 밖에서 `CartRepository`·`Cart`를, `product` 밖에서 `ProductRepository`·`Product`를 참조하지 않는다.
+
+### Task 6: 장바구니·주문이 상품을 ProductService로 읽음
+
+**Files:**
+- Modify: `product/ProductService.kt`, `cart/CartService.kt`, `order/OrderService.kt`
+- Modify (test): `product/ProductServiceTest.kt`, `cart/CartServiceTest.kt`(생성자 인자), `cart/CartControllerTest.kt`(`@Import`에 `ProductService` 추가만)
+
+**Interfaces:**
+- Produces: `ProductService.findByIds(productIds: Collection<String>): Map<String, ProductResult>` — 있는 상품만 ID를 키로 담는다. 없는 ID는 결과에서 빠진다(오류 아님). 빈 입력이면 빈 맵.
+- `CartService(cartRepository, productService: ProductService, keyGenerator, clock)`: 저장 시 요청 상품 중 하나라도 `findByIds` 결과에 없으면 `productNotFound()`. 응답 계산은 `findByIds(cart.lines.keys)` 한 번으로 상품명·단가를 얻고, 결과에 없는 라인은 지금처럼 제외한다.
+- `OrderService(..., productService: ProductService, ...)`: 주문 라인 스냅샷을 `findByIds`로 만든다. 없는 상품 라인 제외, 남는 라인이 없으면 `cartNotFound()`는 그대로.
+
+- [ ] **Step 1: Write the failing test**
+
+```kotlin
+@Test
+fun `여러 상품을 ID로 찾고 없는 ID는 결과에서 빠진다`() {
+	val results = service.findByIds(listOf("cake", "unknown", "americano"))
+
+	assertEquals(setOf("cake", "americano"), results.keys)
+	assertEquals(ProductResult("cake", "케이크", 6000), results["cake"])
+	assertEquals(emptyMap(), service.findByIds(emptyList()))
+}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.product.ProductServiceTest'`
+Expected: FAIL (컴파일 오류 `Unresolved reference 'findByIds'`)
+
+- [ ] **Step 3: Implement `findByIds`, then switch `CartService`·`OrderService` from `ProductRepository` to `ProductService`**
+
+`CartServiceTest`는 `CartService(repository, ProductService(FixedProductRepository()), …)`로 만든다.
+
+- [ ] **Step 4: Run all tests**
+
+Run: `./gradlew test`
+Expected: PASS, 80개. `grep -rn "ProductRepository\|Product\b" src/main/kotlin/io/github/dudco/paymentplayground/{cart,order}`가 결과 없음.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -A src
+git commit -m "refactor: 장바구니·주문이 상품을 ProductService로 읽도록 변경"
+```
+
+---
+
+### Task 7: 주문이 장바구니를 CartService로 다룸
+
+**Files:**
+- Modify: `cart/CartService.kt`, `order/OrderService.kt`
+- Modify (test): `cart/CartServiceTest.kt`
+
+**Interfaces:**
+- Produces (`CartService.kt`):
+  - `data class CheckoutCartResult(val idempotencyKey: String, val lines: List<CheckoutCartLineResult>)`, `data class CheckoutCartLineResult(val productId: String, val quantity: Int)` — 라인은 `productId` 오름차순(저장된 그대로, 가격 계산 없음).
+  - `fun findForCheckout(customerId: String): CheckoutCartResult?` — 장바구니가 없으면 `null`.
+  - `fun clear(customerId: String)` — 장바구니를 지운다(빈 장바구니 저장과 같은 효과, 응답 없음).
+- `OrderService(orderRepository, cartService: CartService, productService, transactionTemplate, clock)`: `CartRepository`·`Cart`·`StoredCart` 대신 위 두 메서드를 쓴다. 재호출 정리(`cleanUpCartIfSameKey`)와 커밋 후 삭제(`deleteCartQuietly`)의 실패 무시 범위·순서는 그대로다.
+
+- [ ] **Step 1: Write the failing tests** (`CartServiceTest`)
+
+- `주문용 조회는 멱등키와 상품 ID 순 라인을 돌려준다`: `cake` 1·`americano` 2 저장 → `findForCheckout`이 `CheckoutCartResult("key-1", listOf(CheckoutCartLineResult("americano", 2), CheckoutCartLineResult("cake", 1)))`.
+- `장바구니가 없으면 주문용 조회는 null이다`: `assertNull(service.findForCheckout("customer-001"))`.
+- `clear는 장바구니를 지운다`: 저장 → `clear` → `assertFalse(repository.contains("customer-001"))`.
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartServiceTest'`
+Expected: FAIL (컴파일 오류 `Unresolved reference 'findForCheckout'`)
+
+- [ ] **Step 3: Implement the two methods, then switch `OrderService` to `CartService`**
+
+- [ ] **Step 4: Run all tests**
+
+Run: `./gradlew test`
+Expected: PASS, 83개. 주문 서비스 테스트(장바구니 조회·삭제 실패 재현 포함)는 수정 없이 통과한다. `grep -rnE "CartRepository|StoredCart|\bCart\b" src/main/kotlin/io/github/dudco/paymentplayground/order`가 결과 없음.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -A src
+git commit -m "refactor: 주문이 장바구니를 CartService로 조회·삭제하도록 변경"
+```
+
+---
+
+### Task 8: 검증과 문서 정리
+
+- [ ] **Step 1:** Task 5 Step 1·2의 확인을 다시 실행하고, 추가로 `grep -rn "import io.github.dudco.paymentplayground.cart.CartRepository\|import io.github.dudco.paymentplayground.product.ProductRepository" src/main`이 각 기능 자기 패키지 밖에서 결과 없음을 확인한다.
+- [ ] **Step 2:** `./gradlew test` → 83개 통과.
+- [ ] **Step 3:** 스펙의 의존 설명을 고친다: 상품 스펙 2장 "다른 기능은 `ProductService`만 의존한다", 장바구니 스펙 2·4장의 상품 조회 주체를 `ProductService`로, 주문 스펙 1·2·5.1장의 `CartRepository`·`ProductRepository`를 `CartService`·`ProductService`로. 커밋 `docs: 기능 사이 접근을 서비스로 한정한 내용을 스펙에 반영`.
