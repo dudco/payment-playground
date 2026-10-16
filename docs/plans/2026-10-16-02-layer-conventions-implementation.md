@@ -121,25 +121,25 @@ git commit -m "refactor: 상품 조회 창구를 ProductRepository로 바꾸고 
   - `CartApi.kt`: `SaveCartRequest`, `SaveCartLineRequest`를 `CartController.kt`에서 그대로 옮긴다(KDoc·검증 애노테이션 포함). `data class CartResponse(...)`, `data class CartLineResponse(...)` — 필드는 `CartResult`/`CartLineResult`와 같은 이름·순서. `companion object { fun from(result: CartResult): CartResponse }`.
   - `CartController`: `get`·`save`가 `CartResponse`를 반환한다. `null` 원소 → `InvalidRequestException` 처리는 그대로 컨트롤러에 둔다.
 
-- [ ] **Step 1: Update the service test to the new types (failing)**
+- [x] **Step 1: Update the service test to the new types (failing)**
 
 `CartServiceTest`의 `CartView`·`CartLineView`를 `CartResult`·`CartLineResult`로 바꾸고, `SequentialIdempotencyKeyGenerator` import를 `io.github.dudco.paymentplayground.support`로 바꾼다. 단언 값은 그대로 둔다.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails** — RED 확인: 컴파일 오류 `Unresolved reference 'CartResult'` (2026-10-16)
 
 Run: `./gradlew test --tests 'io.github.dudco.paymentplayground.cart.CartServiceTest'`
 Expected: FAIL (컴파일 오류 `Unresolved reference 'CartResult'`)
 
-- [ ] **Step 3: Implement per Interfaces**
+- [x] **Step 3: Implement per Interfaces**
 
 생성기 파일은 `git mv` 후 패키지 선언을 바꾸고, 쓰는 곳(`CartService`, 테스트)의 import를 고친다.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests** — 통과: 전체 78/78, CartControllerTest 단언 변경 없음 (2026-10-16)
 
 Run: `./gradlew test`
 Expected: PASS, 78개. `CartControllerTest`의 단언은 수정하지 않았다.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `6acbd24`
 
 ```bash
 git add -A src
